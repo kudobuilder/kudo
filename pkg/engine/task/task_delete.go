@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kudobuilder/kudo/pkg/engine/health"
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,11 +54,20 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 		return false, err
 	}
 
-	// 6. - Check health: always true for Delete task -
-	err = health.IsDeleted(ctx.Client, ctx.Discovery, objs)
-	if err != nil {
-		log.Printf("TaskExecution: %v", err)
-		return false, nil
+	// 6. - Check health - wait for object deletion
+	return allObjsDeleted(ctx, objs)
+}
+
+func allObjsDeleted(ctx Context, objs []runtime.Object) (bool, error) {
+	for _, obj := range objs {
+		objDeleted, _, err := status.IsDeleted(ctx.Client, ctx.Discovery, obj)
+		if err != nil {
+			log.Printf("TaskExecution: wait for object deletion: %v", err)
+			return false, nil
+		}
+		if !objDeleted {
+			return false, nil
+		}
 	}
 	return true, nil
 }

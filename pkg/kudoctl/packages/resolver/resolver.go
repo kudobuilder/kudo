@@ -6,13 +6,14 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
 // Resolver will try to resolve a given package name to either local tarball, folder, remote url or
 // an operator in the remote repository.
 type Resolver interface {
-	Resolve(name string, appVersion string, operatorVersion string) (*packages.Package, error)
+	Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error)
 }
 
 // PackageResolver is the source of resolver of operator packages.
@@ -23,7 +24,7 @@ type PackageResolver struct {
 }
 
 // New creates an operator package resolver for non-repository packages
-func New(repo *repo.Client) *PackageResolver {
+func New(repo *repo.Client) Resolver {
 	lf := NewLocal()
 	uf := NewURL()
 	return &PackageResolver{
@@ -31,6 +32,11 @@ func New(repo *repo.Client) *PackageResolver {
 		uri:   uf,
 		repo:  repo,
 	}
+}
+
+// NewInClusterResolver returns an initialized InClusterResolver for resolving already installed packages
+func NewInClusterResolver(c *kudo.Client, ns string) Resolver {
+	return &InClusterResolver{c: c, ns: ns}
 }
 
 // Resolve provides a one stop to acquire any non-repo packages by trying to look for package files
@@ -43,7 +49,7 @@ func New(repo *repo.Client) *PackageResolver {
 // For local access there is a need to provide absolute or relative path as part of the name argument. `cassandra` without a path
 // component will resolve to the remote repo.  `./cassandra` will resolve to a folder which is expected to have the operator structure on the filesystem.
 // `../folder/cassandra.tgz` will resolve to the cassandra package tarball on the filesystem.
-func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Package, err error) {
+func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Resources, err error) {
 
 	// Local files/folder have priority
 	_, err = m.local.fs.Stat(name)

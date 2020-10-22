@@ -68,7 +68,7 @@ type initCmd struct {
 	image               string
 	imagePullPolicy     string
 	dryRun              bool
-	output              string
+	output              output.Type
 	version             string
 	ns                  string
 	serviceAccount      string
@@ -110,7 +110,7 @@ func newInitCmd(fs afero.Fs, out io.Writer, errOut io.Writer, client *kube.Clien
 	f.StringVarP(&i.image, "kudo-image", "i", "", "Override KUDO controller image and/or version")
 	f.StringVarP(&i.imagePullPolicy, "kudo-image-pull-policy", "", "Always", "Override KUDO controller image pull policy")
 	f.StringVarP(&i.version, "version", "", "", "Override KUDO controller version of the KUDO image")
-	f.StringVarP(&i.output, "output", "o", "", "Output format")
+	f.StringVarP(i.output.AsStringPtr(), "output", "o", "", "Output format")
 	f.BoolVar(&i.dryRun, "dry-run", false, "Do not install local or remote")
 	f.BoolVar(&i.upgrade, "upgrade", false, "Upgrade an existing KUDO installation")
 	f.BoolVar(&i.verify, "verify", false, "Verify an existing KUDO installation")
@@ -147,6 +147,9 @@ func (initCmd *initCmd) validate(flags *flag.FlagSet) error {
 	}
 	if initCmd.crdOnly && initCmd.upgrade {
 		return errors.New("'--upgrade' and '--crd-only' can not be used at the same time: you can not upgrade *only* crds")
+	}
+	if err := initCmd.output.Validate(); err != nil {
+		return err
 	}
 
 	return nil
@@ -215,10 +218,11 @@ func (initCmd *initCmd) run() error {
 
 	if initCmd.wait {
 		clog.Printf("⌛Waiting for KUDO controller to be ready in your cluster...")
-		err := setup.WatchKUDOUntilReady(initCmd.client.KubeClient, opts, initCmd.timeout)
+		err := setup.WatchKUDOUntilReady(installer, initCmd.client, initCmd.timeout)
 		if err != nil {
 			return errors.New("watch timed out, readiness uncertain")
 		}
+		clog.Printf("✅ KUDO is ready!")
 	}
 
 	return nil
@@ -283,13 +287,12 @@ func (initCmd *initCmd) runYamlOutput(installer kudoinit.Artifacter) error {
 // verifyExistingInstallation checks if the current installation is valid and as expected
 func (initCmd *initCmd) verifyExistingInstallation(v kudoinit.InstallVerifier) error {
 	clog.V(4).Printf("verify existing installation")
-	result := verifier.NewResult()
-	if err := v.VerifyInstallation(initCmd.client, &result); err != nil {
+	ok, err := setup.VerifyExistingInstallation(v, initCmd.client, initCmd.out)
+	if err != nil {
 		return err
 	}
-	result.PrintWarnings(initCmd.out)
-	if !result.IsValid() {
-		result.PrintErrors(initCmd.out)
+	if !ok {
+		return fmt.Errorf("KUDO installation is not valid")
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package verify
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -32,6 +33,15 @@ func PackageFiles(pf *packages.Files) verifier.Result {
 		res.Merge(vv.Verify(pf))
 	}
 	return res
+}
+
+func PrintResult(res verifier.Result, out io.Writer) {
+	res.PrintWarnings(out)
+	res.PrintErrors(out)
+
+	if res.IsValid() {
+		fmt.Fprintf(out, "package is valid\n")
+	}
 }
 
 // DuplicateVerifier provides verification that there are no duplicates disallowing casing (Kudo and kudo are duplicates)
@@ -79,6 +89,7 @@ func (VersionVerifier) Verify(pf *packages.Files) verifier.Result {
 		return res
 	}
 	verifySemVer(pf.Operator.OperatorVersion, "operatorVersion", &res, true)
+	verifySemVer(pf.Operator.AppVersion, "appVersion", &res, false)
 	verifySemVer(pf.Operator.KubernetesVersion, "kubernetesVersion", &res, true)
 	verifySemVer(pf.Operator.KUDOVersion, "kudoVersion", &res, false)
 	return res

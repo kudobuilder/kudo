@@ -8,11 +8,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensionfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 	"github.com/kudobuilder/kudo/pkg/util/kudo"
 )
@@ -23,9 +29,132 @@ func newTestSimpleK2o() *Client {
 	return NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())
 }
 
+func newFakeKubeClient() *kube.Client {
+	client := kubefake.NewSimpleClientset()
+	extClient := apiextensionfake.NewSimpleClientset()
+	dynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+
+	return &kube.Client{
+		KubeClient:    client,
+		ExtClient:     extClient,
+		DynamicClient: dynamicClient}
+}
+
+func TestKudoClient_ValidateServedCrds(t *testing.T) {
+	crdWrongVersion := apiextv1beta1.CustomResourceDefinition{
+		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:   "v1beta2",
+					Served: true,
+				},
+			},
+		},
+		Status: apiextv1beta1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+				{
+					Type:   apiextv1beta1.Established,
+					Status: apiextv1beta1.ConditionTrue,
+				},
+			},
+		},
+	}
+	crdNotServed := apiextv1beta1.CustomResourceDefinition{
+		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:   "v1beta1",
+					Served: false,
+				},
+				{
+					Name:   "v1beta2",
+					Served: true,
+				},
+			},
+		},
+		Status: apiextv1beta1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+				{
+					Type:   apiextv1beta1.Established,
+					Status: apiextv1beta1.ConditionTrue,
+				},
+			},
+		},
+	}
+	crdUnHealthy := apiextv1beta1.CustomResourceDefinition{
+		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+				{
+					Name:   "v1beta2",
+					Served: true,
+				},
+			},
+		},
+		Status: apiextv1beta1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+				{
+					Type:   apiextv1beta1.Established,
+					Status: apiextv1beta1.ConditionFalse,
+				},
+				{
+					Type:   apiextv1beta1.Terminating,
+					Status: apiextv1beta1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name    string
+		crdBase *apiextv1beta1.CustomResourceDefinition
+		err     string
+	}{
+		{name: "no crd", err: `CRDs invalid: CRD operators.kudo.dev is not installed       
+CRD operatorversions.kudo.dev is not installed
+CRD instances.kudo.dev is not installed       
+`},
+		{name: "wrong version", crdBase: &crdWrongVersion, err: `CRDs invalid: Expected API version v1beta1 was not found for operators.kudo.dev, api-server only supports [v1beta2]. Please update your KUDO CLI.       
+Expected API version v1beta1 was not found for operatorversions.kudo.dev, api-server only supports [v1beta2]. Please update your KUDO CLI.
+Expected API version v1beta1 was not found for instances.kudo.dev, api-server only supports [v1beta2]. Please update your KUDO CLI.       
+`},
+		{name: "not served", crdBase: &crdNotServed, err: `CRDs invalid: Expected API version v1beta1 for operators.kudo.dev is known to api-server, but is not served. Please update your KUDO CLI.       
+Expected API version v1beta1 for operatorversions.kudo.dev is known to api-server, but is not served. Please update your KUDO CLI.
+Expected API version v1beta1 for instances.kudo.dev is known to api-server, but is not served. Please update your KUDO CLI.       
+`},
+		{name: "unhealthy", crdBase: &crdUnHealthy, err: `CRDs invalid: CRD operators.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )       
+CRD operatorversions.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )
+CRD instances.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-01 00:00:00 +0000 UTC  } {Terminating True 0001-01-01 00:00:00 +0000 UTC  }] )       
+`},
+	}
+
+	crdNames := []string{"instances.kudo.dev", "operators.kudo.dev", "operatorversions.kudo.dev"}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			kudoClient := newTestSimpleK2o()
+			kubeClient := newFakeKubeClient()
+
+			if tt.crdBase != nil {
+				for _, crdName := range crdNames {
+					crd := tt.crdBase.DeepCopy()
+					crd.Name = crdName
+					_, _ = kubeClient.ExtClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{})
+				}
+			}
+
+			err := kudoClient.VerifyServedCRDs(kubeClient)
+
+			assert.EqualError(t, err, tt.err)
+
+		})
+	}
+
+}
+
 func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 
-	obj := v1beta1.Operator{
+	obj := kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -40,7 +169,7 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 		err      string
 		createns string
 		getns    string
-		obj      *v1beta1.Operator
+		obj      *kudoapi.Operator
 	}{
 		{},                                      // 1
 		{createns: "default", getns: "default"}, // 2
@@ -73,7 +202,7 @@ func TestKudoClient_OperatorExistsInCluster(t *testing.T) {
 }
 
 func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
-	obj := v1beta1.Instance{
+	obj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -84,14 +213,14 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
 		},
 	}
 
-	wrongObj := v1beta1.Instance{
+	wrongObj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -102,7 +231,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-0.9",
 			},
@@ -116,7 +245,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 		instanceExists bool
 		namespace      string
 		instanceName   string
-		obj            *v1beta1.Instance
+		obj            *kudoapi.Instance
 	}{
 		{name: "no existing instance in cluster"}, // 1
 		{name: "same namespace and instance name", instanceExists: true, namespace: instanceNamespace, instanceName: obj.ObjectMeta.Name, obj: &obj}, // 3
@@ -148,7 +277,7 @@ func TestKudoClient_InstanceExistsInCluster(t *testing.T) {
 }
 
 func TestKudoClient_ListInstances(t *testing.T) {
-	obj := v1beta1.Instance{
+	obj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -159,7 +288,7 @@ func TestKudoClient_ListInstances(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -167,13 +296,13 @@ func TestKudoClient_ListInstances(t *testing.T) {
 	}
 
 	tests := []struct {
-		expectedInstances []string
+		expectedInstances []runtime.Object
 		namespace         string
-		obj               *v1beta1.Instance
+		obj               *kudoapi.Instance
 	}{
-		{expectedInstances: []string{}, namespace: installNamespace},                    // 1
-		{expectedInstances: []string{obj.Name}, namespace: installNamespace, obj: &obj}, // 2
-		{expectedInstances: []string{}, namespace: "otherns", obj: &obj},                // 3
+		{expectedInstances: []runtime.Object{}, namespace: installNamespace},                // 1
+		{expectedInstances: []runtime.Object{&obj}, namespace: installNamespace, obj: &obj}, // 2
+		{expectedInstances: []runtime.Object{}, namespace: "otherns", obj: &obj},            // 3
 	}
 
 	for i, tt := range tests {
@@ -191,16 +320,25 @@ func TestKudoClient_ListInstances(t *testing.T) {
 		}
 
 		// test if OperatorVersion exists in namespace
-		existingInstances, _ := k2o.ListInstances(tt.namespace)
-		if !reflect.DeepEqual(tt.expectedInstances, existingInstances) {
-			t.Errorf("%d:\nexpected: %v\n     got: %v", i+1, tt.expectedInstances, existingInstances)
+		existingInstances, _ := k2o.ListInstancesAsRuntimeObject(tt.namespace)
+
+		assert.Equal(t, len(tt.expectedInstances), len(existingInstances))
+
+		metadataAccessor := meta.NewAccessor()
+		for i := range existingInstances {
+			expectedName, err := metadataAccessor.Name(tt.expectedInstances[i])
+			assert.NoError(t, err)
+			existingName, err := metadataAccessor.Name(existingInstances[i])
+			assert.NoError(t, err)
+
+			assert.Equal(t, expectedName, existingName)
 		}
 	}
 }
 
 func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 	operatorName := "test"
-	obj := v1beta1.OperatorVersion{
+	obj := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -208,7 +346,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Version: "1.0",
 			Operator: v1.ObjectReference{
 				Name: operatorName,
@@ -223,7 +361,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 		name             string
 		expectedVersions []string
 		namespace        string
-		obj              *v1beta1.OperatorVersion
+		obj              *kudoapi.OperatorVersion
 	}{
 		{name: "no operator version defined", expectedVersions: []string{}, namespace: installNamespace},
 		{name: "operator version exists in the same namespace", expectedVersions: []string{obj.Spec.Version}, namespace: installNamespace, obj: &obj},
@@ -254,7 +392,7 @@ func TestKudoClient_OperatorVersionsInstalled(t *testing.T) {
 }
 
 func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
-	obj := v1beta1.Operator{
+	obj := kudoapi.Operator{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Operator",
@@ -268,7 +406,7 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1beta1.Operator
+		obj      *kudoapi.Operator
 	}{
 		{err: "operators.kudo.dev \"\" not found"},                                                  // 1
 		{err: "operators.kudo.dev \"\" not found", createns: "default"},                             // 2
@@ -300,7 +438,7 @@ func TestKudoClient_InstallOperatorObjToCluster(t *testing.T) {
 }
 
 func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
-	obj := v1beta1.OperatorVersion{
+	obj := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -314,7 +452,7 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1beta1.OperatorVersion
+		obj      *kudoapi.OperatorVersion
 	}{
 		{err: "operatorversions.kudo.dev \"\" not found"},                                                  // 1
 		{err: "operatorversions.kudo.dev \"\" not found", createns: "default"},                             // 2
@@ -346,7 +484,7 @@ func TestKudoClient_InstallOperatorVersionObjToCluster(t *testing.T) {
 }
 
 func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
-	obj := v1beta1.Instance{
+	obj := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -360,7 +498,7 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 		name     string
 		err      string
 		createns string
-		obj      *v1beta1.Instance
+		obj      *kudoapi.Instance
 	}{
 		{err: "instances.kudo.dev \"\" not found"},                                                  // 1
 		{err: "instances.kudo.dev \"\" not found", createns: "default"},                             // 2
@@ -392,7 +530,7 @@ func TestKudoClient_InstallInstanceObjToCluster(t *testing.T) {
 }
 
 func TestKudoClient_GetInstance(t *testing.T) {
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -403,7 +541,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -414,7 +552,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 		name             string
 		found            bool
 		namespaceToQuery string
-		storedInstance   *v1beta1.Instance
+		storedInstance   *kudoapi.Instance
 	}{
 		{name: "no instance exists", namespaceToQuery: installNamespace},                                             // 1
 		{name: "instance exists", found: true, namespaceToQuery: installNamespace, storedInstance: &testInstance},    // 2
@@ -445,7 +583,7 @@ func TestKudoClient_GetInstance(t *testing.T) {
 
 func TestKudoClient_GetOperatorVersion(t *testing.T) {
 	operatorName := "test"
-	testOv := v1beta1.OperatorVersion{
+	testOv := kudoapi.OperatorVersion{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "OperatorVersion",
@@ -453,7 +591,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-1.0", operatorName),
 		},
-		Spec: v1beta1.OperatorVersionSpec{
+		Spec: kudoapi.OperatorVersionSpec{
 			Version: "1.0",
 		},
 	}
@@ -462,7 +600,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 		name      string
 		found     bool
 		namespace string
-		storedOv  *v1beta1.OperatorVersion
+		storedOv  *kudoapi.OperatorVersion
 	}{
 		{name: "no operator version defined", namespace: installNamespace},
 		{name: "operator version exists in the same namespace", found: true, namespace: installNamespace, storedOv: &testOv},
@@ -492,7 +630,7 @@ func TestKudoClient_GetOperatorVersion(t *testing.T) {
 }
 
 func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -503,7 +641,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 			},
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},
@@ -582,7 +720,7 @@ func TestKudoClient_UpdateOperatorVersion(t *testing.T) {
 }
 
 func TestKudoClient_DeleteInstance(t *testing.T) {
-	testInstance := v1beta1.Instance{
+	testInstance := kudoapi.Instance{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "kudo.dev/v1beta1",
 			Kind:       "Instance",
@@ -590,7 +728,7 @@ func TestKudoClient_DeleteInstance(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-		Spec: v1beta1.InstanceSpec{
+		Spec: kudoapi.InstanceSpec{
 			OperatorVersion: v1.ObjectReference{
 				Name: "test-1.0",
 			},

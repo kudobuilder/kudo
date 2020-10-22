@@ -1,33 +1,45 @@
 package packages
 
 import (
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	"fmt"
+
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 const (
 	APIVersion = "kudo.dev/v1beta1"
 )
 
-// This is an abstraction which abstracts the underlying packages, which is likely file system or compressed file.
-// There should be a complete separation between retrieving a packages if not local and working with a packages.
-
-// Package is an abstraction of the collection of files that makes up a package.  It is anything we can retrieve the Resources from.
-type Package struct {
-	// transformed server view
-	Resources *Resources
-	// working with local package files
-	Files *Files
-}
-
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type Resources struct {
-	Operator        *v1beta1.Operator
-	OperatorVersion *v1beta1.OperatorVersion
-	Instance        *v1beta1.Instance
+	Operator        *kudoapi.Operator
+	OperatorVersion *kudoapi.OperatorVersion
+	Instance        *kudoapi.Instance
 }
 
-// Modified v1beta1.Parameter that allows for defaults provided as YAML.
+func (p *Resources) OperatorName() string {
+	if p == nil || p.Operator == nil {
+		return ""
+	}
+	return p.Operator.Name
+}
+
+func (p *Resources) OperatorVersionString() string {
+	if p == nil || p.OperatorVersion == nil {
+		return ""
+	}
+	return p.OperatorVersion.Spec.Version
+}
+
+func (p *Resources) AppVersionString() string {
+	if p == nil || p.OperatorVersion == nil {
+		return ""
+	}
+	return p.OperatorVersion.Spec.AppVersion
+}
+
+// Modified kudoapi.Parameter that allows for defaults provided as YAML.
 type Parameter struct {
 	DisplayName string                `json:"displayName,omitempty"`
 	Name        string                `json:"name,omitempty"`
@@ -35,8 +47,16 @@ type Parameter struct {
 	Required    *bool                 `json:"required,omitempty"`
 	Default     interface{}           `json:"default,omitempty"`
 	Trigger     string                `json:"trigger,omitempty"`
-	Type        v1beta1.ParameterType `json:"type,omitempty"`
+	Type        kudoapi.ParameterType `json:"type,omitempty"`
 	Immutable   *bool                 `json:"immutable,omitempty"`
+	Enum        *[]interface{}        `json:"enum,omitempty"`
+
+	// The following fields are descriptive only and are not used in the OperatorVersion. They are only used on the
+	// package level and are not converted to the CRDs, as they are only used during installation of an operator and
+	// are not necessary server-side.
+	Group    string `json:"group,omitempty"`
+	Advanced *bool  `json:"advanced,omitempty"`
+	Hint     string `json:"hint,omitempty"`
 }
 
 func (p Parameter) IsImmutable() bool {
@@ -47,8 +67,38 @@ func (p Parameter) IsRequired() bool {
 	return p.Required != nil && *p.Required
 }
 
+func (p Parameter) IsAdvanced() bool {
+	return p.Advanced != nil && *p.Advanced
+}
+
+func (p Parameter) IsEnum() bool {
+	return p.Enum != nil
+}
+
 func (p *Parameter) HasDefault() bool {
 	return p.Default != nil
+}
+
+func (p *Parameter) ValidateDefault() error {
+	if err := kudoapi.ValidateParameterValueForType(p.Type, p.Default); err != nil {
+		return fmt.Errorf("parameter \"%s\" has an invalid default value: %v", p.Name, err)
+	}
+	if p.IsEnum() {
+		for _, eValue := range p.EnumValues() {
+			if p.Default == eValue {
+				return nil
+			}
+		}
+		return fmt.Errorf("parameter \"%s\" has an invalid default value: value is %q, but only allowed values are %v", p.Name, p.Default, p.EnumValues())
+	}
+	return nil
+}
+
+func (p *Parameter) EnumValues() []interface{} {
+	if p.IsEnum() {
+		return *p.Enum
+	}
+	return []interface{}{}
 }
 
 type Parameters []Parameter
@@ -67,6 +117,15 @@ func (p Parameters) Less(x, y int) bool {
 	return p[x].Name < p[y].Name
 }
 
+type Groups []Group
+
+type Group struct {
+	Name        string `json:"name,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Description string `json:"description,omitempty"`
+	Priority    int    `json:"prio,omitempty"`
+}
+
 // Templates is a map of file names and stringified files in the template folder of an operator
 type Templates map[string]string
 
@@ -80,6 +139,7 @@ type Files struct {
 // ParamsFile is a representation of the package params.yaml
 type ParamsFile struct {
 	APIVersion string     `json:"apiVersion,omitempty"`
+	Groups     Groups     `json:"groups,omitempty"`
 	Parameters Parameters `json:"parameters"`
 }
 
@@ -92,9 +152,9 @@ type OperatorFile struct {
 	AppVersion        string                  `json:"appVersion,omitempty"`
 	KUDOVersion       string                  `json:"kudoVersion,omitempty"`
 	KubernetesVersion string                  `json:"kubernetesVersion,omitempty"`
-	Maintainers       []*v1beta1.Maintainer   `json:"maintainers,omitempty"`
+	Maintainers       []*kudoapi.Maintainer   `json:"maintainers,omitempty"`
 	URL               string                  `json:"url,omitempty"`
-	Tasks             []v1beta1.Task          `json:"tasks"`
-	Plans             map[string]v1beta1.Plan `json:"plans"`
+	Tasks             []kudoapi.Task          `json:"tasks"`
+	Plans             map[string]kudoapi.Plan `json:"plans"`
 	NamespaceManifest string                  `json:"namespaceManifest,omitempty"`
 }

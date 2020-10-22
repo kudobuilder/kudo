@@ -1,0 +1,34 @@
+# Assert that the operator names are still the same as before
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: simple-op-1.2.3-0.2.0
+spec:
+  version: 0.2.0
+  appVersion: 1.2.3
+  operator:
+    kind: Operator
+    name: simple-op
+---
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: simple-op
+spec:
+  operatorVersion:
+    name: simple-op-1.2.3-0.2.0
+status:
+  planStatus:
+    deploy:
+      status: COMPLETE
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        fixedLabel: fixedvalue

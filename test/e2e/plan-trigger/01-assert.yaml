@@ -5,7 +5,7 @@ metadata:
     kudo.dev/operator: feature-operator
 spec:
   operatorVersion:
-    name: feature-operator-0.1.0
+    name: feature-operator-1.7.9-0.1.0
 status:
   planStatus:
     deploy:

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -13,21 +13,21 @@ func TestTaskReferenceVerifier(t *testing.T) {
 
 	// 2 task , 1 referenced, 1 not referenced (results in warning)
 	resources := []string{"sally.yaml"}
-	tasks := []v1beta1.Task{{
+	tasks := []kudoapi.Task{{
 		Name: "thingOne",
 		Kind: "Apply",
-		Spec: v1beta1.TaskSpec{
-			ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: resources},
+		Spec: kudoapi.TaskSpec{
+			ResourceTaskSpec: kudoapi.ResourceTaskSpec{Resources: resources},
 		},
 	}, {
 		Name: "thingTwo",
 		Kind: "Apply",
-		Spec: v1beta1.TaskSpec{
-			ResourceTaskSpec: v1beta1.ResourceTaskSpec{Resources: resources},
+		Spec: kudoapi.TaskSpec{
+			ResourceTaskSpec: kudoapi.ResourceTaskSpec{Resources: resources},
 		},
 	}}
 
-	steps := []v1beta1.Step{{
+	steps := []kudoapi.Step{{
 		Name:  "cat-in-hat",
 		Tasks: []string{"thingOne"},
 	}, {
@@ -35,14 +35,14 @@ func TestTaskReferenceVerifier(t *testing.T) {
 		Tasks: []string{"thingThree"},
 	}}
 
-	phases := []v1beta1.Phase{{
+	phases := []kudoapi.Phase{{
 		Name:     "parents leave",
 		Strategy: "serial",
 		Steps:    steps,
 	}}
 
-	plans := make(map[string]v1beta1.Plan)
-	plans["boring-rainy"] = v1beta1.Plan{
+	plans := make(map[string]kudoapi.Plan)
+	plans["boring-rainy"] = kudoapi.Plan{
 		Strategy: "serial",
 		Phases:   phases,
 	}

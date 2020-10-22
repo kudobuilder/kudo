@@ -15,7 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/version"
 )
 
@@ -82,6 +82,7 @@ builddate: "1970-01-01T00:00:00Z"
 goversion: go1.13.4
 compiler: gc
 platform: linux/amd64
+kubernetesclientversion: v0.18.6
 `
 )
 
@@ -126,7 +127,7 @@ func TestPrinter_printObject(t *testing.T) {
 		},
 		{
 			desc: "kudo object with dir",
-			obj: &v1beta1.Operator{
+			obj: &kudoapi.Operator{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Operator",
 					APIVersion: "kudo.dev/v1beta1",
@@ -322,12 +323,13 @@ func TestPrinter_printYaml(t *testing.T) {
 		{
 			desc: "print Yaml OK",
 			v: version.Info{
-				GitVersion: "dev",
-				GitCommit:  "dev",
-				BuildDate:  "1970-01-01T00:00:00Z",
-				GoVersion:  "go1.13.4",
-				Compiler:   "gc",
-				Platform:   "linux/amd64",
+				GitVersion:              "dev",
+				GitCommit:               "dev",
+				BuildDate:               "1970-01-01T00:00:00Z",
+				GoVersion:               "go1.13.4",
+				Compiler:                "gc",
+				Platform:                "linux/amd64",
+				KubernetesClientVersion: "v0.18.6",
 			},
 			parentDir: "root",
 			name:      "version",

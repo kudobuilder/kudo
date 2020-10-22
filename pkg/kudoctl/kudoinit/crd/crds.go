@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
@@ -65,15 +67,31 @@ func (c Initializer) PreUpgradeVerify(client *kube.Client, result *verifier.Resu
 	return nil
 }
 
-// VerifyInstallation ensures that the CRDs are installed and have the correct and expected version
+// VerifyInstallation ensures that all CRDs are installed and are the same as this CLI would install
 func (c Initializer) VerifyInstallation(client *kube.Client, result *verifier.Result) error {
-	if err := c.verifyInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Operator, result); err != nil {
+	apiClient := client.ExtClient.ApiextensionsV1beta1()
+	if err := c.verifyInstallation(apiClient, c.Operator, result); err != nil {
 		return err
 	}
-	if err := c.verifyInstallation(client.ExtClient.ApiextensionsV1beta1(), c.OperatorVersion, result); err != nil {
+	if err := c.verifyInstallation(apiClient, c.OperatorVersion, result); err != nil {
 		return err
 	}
-	if err := c.verifyInstallation(client.ExtClient.ApiextensionsV1beta1(), c.Instance, result); err != nil {
+	if err := c.verifyInstallation(apiClient, c.Instance, result); err != nil {
+		return err
+	}
+	return nil
+}
+
+// VerifyServedVersion ensures that the api server provides the correct version of all CRDs that this client understands
+func (c Initializer) VerifyServedVersion(client *kube.Client, expectedVersion string, result *verifier.Result) error {
+	apiClient := client.ExtClient.ApiextensionsV1beta1()
+	if err := c.verifyServedVersion(apiClient, c.Operator.Name, expectedVersion, result); err != nil {
+		return err
+	}
+	if err := c.verifyServedVersion(apiClient, c.OperatorVersion.Name, expectedVersion, result); err != nil {
+		return err
+	}
+	if err := c.verifyServedVersion(apiClient, c.Instance.Name, expectedVersion, result); err != nil {
 		return err
 	}
 	return nil
@@ -93,6 +111,7 @@ func (c Initializer) Install(client *kube.Client) error {
 	return nil
 }
 
+// verifyIsNotInstalled is used to ensure that the cluster has no old KUDO version installed
 func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
 	_, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
 	if err != nil {
@@ -105,23 +124,73 @@ func (c Initializer) verifyIsNotInstalled(client v1beta1.CustomResourceDefinitio
 	return nil
 }
 
-func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
-	existingCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crd.Name, v1.GetOptions{})
+func (c Initializer) getCrdForVerify(client v1beta1.CustomResourceDefinitionsGetter, crdName string, result *verifier.Result) (*apiextv1beta1.CustomResourceDefinition, error) {
+	existingCrd, err := client.CustomResourceDefinitions().Get(context.TODO(), crdName, v1.GetOptions{})
 	if err != nil {
 		if os.IsTimeout(err) {
-			return err
+			return nil, err
 		}
 		if kerrors.IsNotFound(err) {
-			result.AddErrors(fmt.Sprintf("CRD %s is not installed", crd.Name))
-			return nil
+			result.AddErrors(fmt.Sprintf("CRD %s is not installed", crdName))
+			return nil, nil
 		}
-		return fmt.Errorf("failed to retrieve CRD %s: %v", crd.Name, err)
+		return nil, fmt.Errorf("failed to retrieve CRD %s: %v", crdName, err)
 	}
-	if existingCrd.Spec.Version != crd.Spec.Version {
-		result.AddErrors(fmt.Sprintf("Installed CRD %s has invalid version %s, expected %s", crd.Name, existingCrd.Spec.Version, crd.Spec.Version))
+	return existingCrd, nil
+}
+
+// VerifyInstallation ensures that a single CRD is installed and is the same as this CLI would install
+func (c Initializer) verifyInstallation(client v1beta1.CustomResourceDefinitionsGetter, crd *apiextv1beta1.CustomResourceDefinition, result *verifier.Result) error {
+	existingCrd, err := c.getCrdForVerify(client, crd.Name, result)
+	if err != nil || existingCrd == nil {
+		return err
+	}
+	if !reflect.DeepEqual(existingCrd.Spec.Versions, crd.Spec.Versions) {
+		result.AddErrors(fmt.Sprintf("Installed CRD versions do not match expected CRD versions (%v vs %v).", existingCrd.Spec.Versions, crd.Spec.Versions))
+	}
+	if healthy, msg, err := status.IsHealthy(existingCrd); !healthy || err != nil {
+		if err != nil {
+			return err
+		}
+		result.AddErrors(fmt.Sprintf("Installed CRD %s is not healthy: %v", crd.Name, msg))
 		return nil
 	}
-	clog.V(2).Printf("CRD %s is installed with version %s", crd.Name, existingCrd.Spec.Versions[0].Name)
+	clog.V(2).Printf("CRD %s is installed with versions %v", crd.Name, existingCrd.Spec.Versions)
+	return nil
+}
+
+// VerifyServedVersion ensures that the api server provides the correct version of a specific CRDs that this client understands
+func (c Initializer) verifyServedVersion(client v1beta1.CustomResourceDefinitionsGetter, crdName, version string, result *verifier.Result) error {
+	existingCrd, err := c.getCrdForVerify(client, crdName, result)
+	if err != nil || existingCrd == nil {
+		return err
+	}
+	if healthy, msg, err := status.IsHealthy(existingCrd); !healthy || err != nil {
+		if !healthy {
+			result.AddErrors(msg)
+		} else {
+			result.AddErrors(err.Error())
+		}
+		return nil
+	}
+
+	var expectedVersion *apiextv1beta1.CustomResourceDefinitionVersion
+	var allNames = []string{}
+	for _, v := range existingCrd.Spec.Versions {
+		v := v
+		allNames = append(allNames, v.Name)
+		if v.Name == version {
+			expectedVersion = &v
+			break
+		}
+	}
+	if expectedVersion == nil {
+		result.AddErrors(fmt.Sprintf("Expected API version %s was not found for %s, api-server only supports %v. Please update your KUDO CLI.", version, crdName, allNames))
+		return nil
+	}
+	if !expectedVersion.Served {
+		result.AddErrors(fmt.Sprintf("Expected API version %s for %s is known to api-server, but is not served. Please update your KUDO CLI.", version, crdName))
+	}
 	return nil
 }
 

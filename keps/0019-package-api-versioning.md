@@ -117,7 +117,7 @@ The version of an _application_, e.g. 3.11.5 (for Apache Cassandra), 2.3.0 (for 
 
 Even though this version will more commonly follow [SemVer](https://semver.org/) for operators managing popular applications, it is ultimately outside of our control and therefore cannot be assumed to be [SemVer](https://semver.org/).
 
-Programs dealing with the application version can try to parse it as a structured specification like SemVer, but should be able to handle anything (i.e., fall-back to strings).
+Even though the original app version may not be SemVer, we require operator developers to use a SemVer application version to ensure correct ordering.
 
 ## Summary
 

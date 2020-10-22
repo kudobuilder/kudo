@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/thoas/go-funk"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,6 +71,7 @@ func (i *Instance) NoPlanEverExecuted() bool {
 }
 
 // UpdateInstanceStatus updates `Status.PlanStatus` and `Status.AggregatedStatus` property based on the given plan
+// also updates Ready condition for finished plans
 func (i *Instance) UpdateInstanceStatus(ps *PlanStatus, updatedTimestamp *metav1.Time) {
 	for k, v := range i.Status.PlanStatus {
 		if v.Name == ps.Name {
@@ -77,6 +79,12 @@ func (i *Instance) UpdateInstanceStatus(ps *PlanStatus, updatedTimestamp *metav1
 			i.Status.PlanStatus[k] = *ps
 			i.Spec.PlanExecution.Status = ps.Status
 		}
+	}
+	if i.Spec.PlanExecution.Status.IsFinished() {
+		i.SetReadiness(ReadinessResourcesReady, "")
+	}
+	if i.Spec.PlanExecution.Status == ExecutionFatalError {
+		i.SetReadiness(ReadinessPlanInFatalError, "")
 	}
 }
 
@@ -194,6 +202,33 @@ func (i *Instance) IsChildInstance() bool {
 
 func (i *Instance) IsTopLevelInstance() bool {
 	return !i.IsChildInstance()
+}
+
+type ReadinessType string
+
+const (
+	ReadinessPlanInProgress   ReadinessType = "PlanInProgress"
+	ReadinessPlanInFatalError ReadinessType = "PlanInFatalError"
+	ReadinessResourceNotReady ReadinessType = "ResourceNotReady"
+	ReadinessResourcesReady   ReadinessType = "ResourcesReady"
+
+	readyConditionType = "Ready"
+)
+
+func (i *Instance) SetReadiness(reason ReadinessType, msg string) {
+	var status metav1.ConditionStatus
+
+	switch reason {
+	case ReadinessResourcesReady:
+		status = metav1.ConditionTrue
+	case ReadinessResourceNotReady:
+		status = metav1.ConditionFalse
+	case ReadinessPlanInFatalError, ReadinessPlanInProgress:
+		status = metav1.ConditionUnknown
+	}
+
+	condition := metav1.Condition{Type: readyConditionType, Status: status, Message: msg, Reason: string(reason)}
+	meta.SetStatusCondition(&i.Status.Conditions, condition)
 }
 
 // wasRunAfter returns true if p1 was run after p2

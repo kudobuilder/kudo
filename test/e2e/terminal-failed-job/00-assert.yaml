@@ -5,7 +5,7 @@ metadata:
     kudo.dev/operator: failjob-operator
 spec:
   operatorVersion:
-    name: failjob-operator-0.1.0
+    name: failjob-operator-1.7.9-0.1.0
 status:
   planStatus:
     deploy:

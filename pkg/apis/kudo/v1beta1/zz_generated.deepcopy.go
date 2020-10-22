@@ -19,7 +19,8 @@ limitations under the License.
 package v1beta1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -133,6 +134,13 @@ func (in *InstanceStatus) DeepCopyInto(out *InstanceStatus) {
 		*out = make(map[string]PlanStatus, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
+		}
+	}
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	return
@@ -379,7 +387,7 @@ func (in *OperatorVersionSpec) DeepCopyInto(out *OperatorVersionSpec) {
 	}
 	if in.UpgradableFrom != nil {
 		in, out := &in.UpgradableFrom, &out.UpgradableFrom
-		*out = make([]v1.ObjectReference, len(*in))
+		*out = make([]corev1.ObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	return
@@ -428,6 +436,15 @@ func (in *Parameter) DeepCopyInto(out *Parameter) {
 		in, out := &in.Immutable, &out.Immutable
 		*out = new(bool)
 		**out = **in
+	}
+	if in.Enum != nil {
+		in, out := &in.Enum, &out.Enum
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	return
 }

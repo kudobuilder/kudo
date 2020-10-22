@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: kudo-manager
+    control-plane: controller-manager
+  name: kudo-controller-manager
+  namespace: kudo-system
+spec:
+  template:
+    spec:
+      containers:
+        - image: kudobuilder/controller:test
+---
+# Assert that the operator names are still the same as before
+apiVersion: kudo.dev/v1beta1
+kind: OperatorVersion
+metadata:
+  name: simple-op-0.1.0
+spec:
+  version: 0.1.0
+  appVersion: 1.2.3
+  operator:
+    kind: Operator
+    name: simple-op
+---
+# Assert that the operator names are still the same as before
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: simple-op
+spec:
+  operatorVersion:
+    name: simple-op-0.1.0

@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // +k8s:deepcopy-gen=false
@@ -60,7 +60,7 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 
 func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Response {
 	// trigger "deploy" for freshly created Instances: req.Object contains the created object
-	new := &kudov1beta1.Instance{}
+	new := &kudoapi.Instance{}
 	if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
@@ -79,18 +79,21 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 	}
 
 	// if there is a 'cleanup' plan present in the OV, we add a finalizer to the instance
-	if kudov1beta1.CleanupPlanExists(ov) {
+	if kudoapi.CleanupPlanExists(ov) {
 		new.TryAddFinalizer()
 	}
 
 	// schedule 'deploy' plan for execution (and fail if it doesn't exist)
-	if !kudov1beta1.PlanExists(kudov1beta1.DeployPlanName, ov) {
-		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plan in the operatorVersion", new.Namespace, new.Name, kudov1beta1.DeployPlanName))
+	if !kudoapi.PlanExists(kudoapi.DeployPlanName, ov) {
+		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: couldn't find '%s' plan in the operatorVersion", new.Namespace, new.Name, kudoapi.DeployPlanName))
 	}
-	new.Spec.PlanExecution.PlanName = kudov1beta1.DeployPlanName
+	new.Spec.PlanExecution.PlanName = kudoapi.DeployPlanName
 	new.Spec.PlanExecution.UID = uuid.NewUUID()
 
 	setImmutableParameterDefaults(ov, new)
+	if err := validateParameters(ov, new); err != nil {
+		return admission.Denied(fmt.Sprintf("failed to create an Instance %s/%s: parameters are not valid: %v", new.Namespace, new.Name, err))
+	}
 
 	marshaled, err := json.Marshal(new)
 	if err != nil {
@@ -101,7 +104,7 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 }
 
 func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Response {
-	old, new := &kudov1beta1.Instance{}, &kudov1beta1.Instance{}
+	old, new := &kudoapi.Instance{}, &kudoapi.Instance{}
 
 	// req.Object contains the updated object
 	if err := ia.decoder.DecodeRaw(req.Object, new); err != nil {
@@ -148,8 +151,8 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 		new.Spec.PlanExecution.UID = ""
 		new.Spec.PlanExecution.Status = ""
 		if *triggered != "" {
-			new.Spec.PlanExecution.UID = uuid.NewUUID()                   // if there is a new plan, generate new UID
-			new.Spec.PlanExecution.Status = kudov1beta1.ExecutionNeverRun // and set status to NEVER_RUN
+			new.Spec.PlanExecution.UID = uuid.NewUUID()               // if there is a new plan, generate new UID
+			new.Spec.PlanExecution.Status = kudoapi.ExecutionNeverRun // and set status to NEVER_RUN
 		}
 
 		marshaled, err := json.Marshal(new)
@@ -190,7 +193,7 @@ func handleUpdate(ia *InstanceAdmission, req admission.Request) admission.Respon
 // - <nil> when there is no change to an existing scheduled plan
 // - '' empty string when an existing plan should be canceled (not implemented yet)
 // - 'newPlan' some new plan that should be triggered
-func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.OperatorVersion) (*string, error) { //nolint:gocyclo
+func admitUpdate(old, new *kudoapi.Instance, ov, oldOv *kudoapi.OperatorVersion) (*string, error) { //nolint:gocyclo
 	// PREREQUISITES:
 	newPlan := new.Spec.PlanExecution.PlanName
 	oldPlan := old.Spec.PlanExecution.PlanName
@@ -210,7 +213,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	isPlanTerminal := new.Spec.PlanExecution.Status.IsTerminal()
 
 	// validate plan first
-	if newPlan != "" && kudov1beta1.SelectPlan([]string{newPlan}, ov) == nil {
+	if newPlan != "" && kudoapi.SelectPlan([]string{newPlan}, ov) == nil {
 		return nil, fmt.Errorf("plan %s does not exist", newPlan)
 	}
 
@@ -222,6 +225,9 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	if err = checkImmutableParameters(old.Spec.Parameters, new.Spec.Parameters, ov, oldOv, changedDefs, isUpgrade); err != nil {
 		return nil, fmt.Errorf("failed to check immutable parameters for Instance %s/%s: %v", old.Namespace, old.Name, err)
 	}
+	if err := validateParameters(ov, new); err != nil {
+		return nil, fmt.Errorf("failed to validate parameters for Instance %s/%s: %v", new.Namespace, new.Name, err)
+	}
 
 	parameterDefs := append(changedDefs, removedDefs...)
 	triggeredPlan, err := triggeredByParameterUpdate(parameterDefs, ov)
@@ -230,7 +236,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	}
 
 	isParameterUpdate := triggeredPlan != nil
-	updateIncompatibleWithUpgrade := isParameterUpdate && *triggeredPlan != kudov1beta1.DeployPlanName
+	updateIncompatibleWithUpgrade := isParameterUpdate && *triggeredPlan != kudoapi.DeployPlanName
 
 	// --------------------------------------------------------------------------------------------
 	// --- Instance can have two major life-cycle phases: normal and cleanup (uninstall) phase. ---
@@ -246,7 +252,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	// - 'cleanup' overrides any existing update/upgrade plan
 	// - 'cleanup' itself can *NOT* be cancelled or overridden by any other plan since the instance is being deleted
 	if isDeleting {
-		Cleanup := kudov1beta1.CleanupPlanName
+		Cleanup := kudoapi.CleanupPlanName
 		isCleanupOverride := oldPlan == Cleanup && newPlan != oldPlan
 		notCleanupScheduled := newPlan != "" && newPlan != Cleanup
 
@@ -283,14 +289,14 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 	// this case is effectively a noop because isPlanOverride is disallowed for now. However, once plan overrides are implemented, this will be needed so don't remove.
 	case isParameterUpdate && isPlanOverride:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: updating parameters and triggering plan '%s' is not allowed", old.Namespace, old.Name, *triggeredPlan)
-	case newPlan == kudov1beta1.CleanupPlanName:
+	case newPlan == kudoapi.CleanupPlanName:
 		return nil, fmt.Errorf("failed to update Instance %s/%s: only the controller schedules the '%s' plan when the instance is deleted", old.Namespace, old.Name, newPlan)
 	}
 
 	// Deciding which plan to trigger:
 	switch {
 	case isUpgrade:
-		plan := kudov1beta1.SelectPlan([]string{kudov1beta1.UpgradePlanName, kudov1beta1.UpdatePlanName, kudov1beta1.DeployPlanName}, ov)
+		plan := kudoapi.SelectPlan([]string{kudoapi.UpgradePlanName, kudoapi.UpdatePlanName, kudoapi.DeployPlanName}, ov)
 		if plan == nil {
 			return nil, fmt.Errorf("failed to update Instance %s/%s: couldn't find any suitable plan that would be triggered by an OperatorVersion upgrade", old.Namespace, old.Name)
 		}
@@ -325,7 +331,7 @@ func admitUpdate(old, new *kudov1beta1.Instance, ov, oldOv *kudov1beta1.Operator
 }
 
 // triggeredByParameterUpdate determines what plan to run based on parameters that changed and the corresponding parameter trigger.
-func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.OperatorVersion) (*string, error) {
+func triggeredByParameterUpdate(params []kudoapi.Parameter, ov *kudoapi.OperatorVersion) (*string, error) {
 	// If no parameters were changed, we return an empty string so no plan would be triggered
 	if len(params) == 0 {
 		return nil, nil
@@ -334,7 +340,7 @@ func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.
 	plans := make([]string, 0)
 	for _, p := range params {
 		if p.Trigger != "" {
-			if kudov1beta1.PlanExists(p.Trigger, ov) {
+			if kudoapi.PlanExists(p.Trigger, ov) {
 				plans = append(plans, p.Trigger)
 			} else {
 				return nil, fmt.Errorf("param %s defined trigger plan %s, but plan not defined in operatorversion", p.Name, p.Trigger)
@@ -346,7 +352,7 @@ func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.
 	switch len(plans) {
 	case 0:
 		// no plan could be triggered since we do not force existence of the "deploy" plan in the operators
-		fallback := kudov1beta1.SelectPlan([]string{kudov1beta1.UpdatePlanName, kudov1beta1.DeployPlanName}, ov)
+		fallback := kudoapi.SelectPlan([]string{kudoapi.UpdatePlanName, kudoapi.DeployPlanName}, ov)
 		if fallback == nil {
 			return nil, fmt.Errorf("couldn't find any plans that would be triggered by the update")
 		}
@@ -360,9 +366,9 @@ func triggeredByParameterUpdate(params []kudov1beta1.Parameter, ov *kudov1beta1.
 
 // changedParameters returns a list of parameter definitions for params which value changed or that were added from old to new
 // This does *not* include parameters which *definition* has changed in an OV upgrade but where the value has not changed!
-func changedParameters(old, new map[string]string, newOv *kudov1beta1.OperatorVersion) ([]kudov1beta1.Parameter, []kudov1beta1.Parameter, error) {
-	changed, removed := kudov1beta1.RichParameterDiff(old, new)
-	changedDefs, err := kudov1beta1.GetParamDefinitions(changed, newOv)
+func changedParameters(old, new map[string]string, newOv *kudoapi.OperatorVersion) ([]kudoapi.Parameter, []kudoapi.Parameter, error) {
+	changed, removed := kudoapi.RichParameterDiff(old, new)
+	changedDefs, err := kudoapi.GetParamDefinitions(changed, newOv)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -370,12 +376,12 @@ func changedParameters(old, new map[string]string, newOv *kudov1beta1.OperatorVe
 	// we ignore the error for missing OV parameter definitions for removed parameters. For once, this is a valid use-case when
 	// upgrading an Instance (new OV might remove parameters), but the user can also manually edit current OV and remove parameters.
 	// while discouraged, this is still possible since OV is not immutable.
-	removedDefs, _ := kudov1beta1.GetParamDefinitions(removed, newOv)
+	removedDefs, _ := kudoapi.GetParamDefinitions(removed, newOv)
 
 	return changedDefs, removedDefs, nil
 }
 
-func checkImmutableParameters(old, new map[string]string, newOv, oldOv *kudov1beta1.OperatorVersion, changedDefs []kudov1beta1.Parameter, isUpgrade bool) error {
+func checkImmutableParameters(old, new map[string]string, newOv, oldOv *kudoapi.OperatorVersion, changedDefs []kudoapi.Parameter, isUpgrade bool) error {
 	if !isUpgrade {
 		for _, p := range changedDefs {
 			if p.IsImmutable() {
@@ -404,12 +410,12 @@ func checkImmutableParameters(old, new map[string]string, newOv, oldOv *kudov1be
 //   * The value is removed from the params list
 //
 // https://github.com/kudobuilder/kudo/blob/main/keps/0030-immutable-parameters.md
-func validateOVUpgrade(new map[string]string, newOv, oldOv *kudov1beta1.OperatorVersion) error {
-	isEqualImmutable := func(p1, p2 kudov1beta1.Parameter) bool {
+func validateOVUpgrade(new map[string]string, newOv, oldOv *kudoapi.OperatorVersion) error {
+	isEqualImmutable := func(p1, p2 kudoapi.Parameter) bool {
 		return p1.IsImmutable() == p2.IsImmutable()
 	}
 
-	for _, changedParamDefs := range kudov1beta1.GetChangedParamDefs(oldOv.Spec.Parameters, newOv.Spec.Parameters, isEqualImmutable) {
+	for _, changedParamDefs := range kudoapi.GetChangedParamDefs(oldOv.Spec.Parameters, newOv.Spec.Parameters, isEqualImmutable) {
 		if changedParamDefs.IsImmutable() {
 			// Param was changed from Mutable to Immutable - We need to make sure we have a value set
 			if _, ok := new[changedParamDefs.Name]; !ok {
@@ -421,12 +427,12 @@ func validateOVUpgrade(new map[string]string, newOv, oldOv *kudov1beta1.Operator
 		// }
 	}
 
-	for _, removedParamDefs := range kudov1beta1.GetRemovedParamDefs(oldOv.Spec.Parameters, newOv.Spec.Parameters) {
+	for _, removedParamDefs := range kudoapi.GetRemovedParamDefs(oldOv.Spec.Parameters, newOv.Spec.Parameters) {
 		// Param was removed - Remove the value from the parameters if it exists
 		delete(new, removedParamDefs.Name)
 	}
 
-	for _, addedParamDefs := range kudov1beta1.GetAddedParameters(oldOv.Spec.Parameters, newOv.Spec.Parameters) {
+	for _, addedParamDefs := range kudoapi.GetAddedParameters(oldOv.Spec.Parameters, newOv.Spec.Parameters) {
 		if addedParamDefs.IsImmutable() {
 			// A new immutable param was added
 			if _, ok := new[addedParamDefs.Name]; !ok {
@@ -440,8 +446,22 @@ func validateOVUpgrade(new map[string]string, newOv, oldOv *kudov1beta1.Operator
 	return nil
 }
 
+// validateParameters ensures that all parameters have correct values
+func validateParameters(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance) error {
+	for _, p := range ov.Spec.Parameters {
+		p := p
+		pValue := instance.Spec.Parameters[p.Name]
+
+		if err := p.ValidateValue(pValue); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
 // setImmutableParameterDefaults sets the default values for immutable parameters into the instances parameter map
-func setImmutableParameterDefaults(ov *kudov1beta1.OperatorVersion, instance *kudov1beta1.Instance) {
+func setImmutableParameterDefaults(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance) {
 	for _, p := range ov.Spec.Parameters {
 		if p.IsImmutable() && p.HasDefault() {
 			if _, ok := instance.Spec.Parameters[p.Name]; !ok {

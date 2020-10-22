@@ -11,6 +11,7 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/params"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
+	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/upgrade"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
@@ -101,15 +102,19 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 	if err != nil {
 		return fmt.Errorf("could not build operator repository: %w", err)
 	}
+
 	resolver := pkgresolver.New(repository)
-	pkg, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
+	pr, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve operator package for: %s: %w", packageToUpgrade, err)
 	}
 
-	resources := pkg.Resources
+	pr.OperatorVersion.SetNamespace(settings.Namespace)
 
-	resources.OperatorVersion.SetNamespace(settings.Namespace)
+	dependencies, err := deps.Resolve(packageToUpgrade, pr.OperatorVersion, resolver)
+	if err != nil {
+		return err
+	}
 
-	return upgrade.OperatorVersion(kc, resources.OperatorVersion, options.InstanceName, options.Parameters, resolver)
+	return upgrade.OperatorVersion(kc, pr.OperatorVersion, options.InstanceName, options.Parameters, dependencies)
 }

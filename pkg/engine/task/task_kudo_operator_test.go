@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kudobuilder/kudo/pkg/apis"
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
 )
@@ -29,10 +29,10 @@ func Test_applyInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	operatorVersion := &v1beta1.OperatorVersion{
+	operatorVersion := &kudoapi.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-operator", Namespace: namespace},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
-		Spec:       v1beta1.OperatorVersionSpec{Version: "0.1.0"},
+		Spec:       kudoapi.OperatorVersionSpec{Version: "0.1.0"},
 	}
 
 	instance, err := instanceResource("test-instance", operatorName, operatorVersionName, namespace, nil, operatorVersion, scheme)
@@ -40,7 +40,7 @@ func Test_applyInstance(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		new     *v1beta1.Instance
+		new     *kudoapi.Instance
 		ns      string
 		c       client.Client
 		wantErr bool
@@ -62,7 +62,7 @@ func Test_applyInstance(t *testing.T) {
 		},
 		{
 			name: "patching an existing instance with the updated spec is successful",
-			new: func() *v1beta1.Instance {
+			new: func() *kudoapi.Instance {
 				c := instance.DeepCopy()
 				c.Spec.Parameters = map[string]string{"foo": "bar"}
 				return c
@@ -80,7 +80,7 @@ func Test_applyInstance(t *testing.T) {
 		},
 		{
 			name: "upgrading to a new operator version works",
-			new: func() *v1beta1.Instance {
+			new: func() *kudoapi.Instance {
 				c := instance.DeepCopy()
 				c.Spec.OperatorVersion = corev1.ObjectReference{
 					Name: "test-0.2.0",

@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 	fake2 "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
@@ -92,43 +94,46 @@ func TestInitCmd_output(t *testing.T) {
 	MockCRD(c.client, "certificates.cert-manager.io", "v1alpha2")
 	MockCRD(c.client, "issuers.cert-manager.io", "v1alpha2")
 
-	tests := []string{"yaml"}
-	for _, s := range tests {
-		var buf bytes.Buffer
-		var errOut bytes.Buffer
-		cmd := &initCmd{
-			out:     &buf,
-			errOut:  &errOut,
-			client:  c.client,
-			output:  s,
-			dryRun:  true,
-			version: "dev",
-		}
-		// ensure that we can marshal
-		if err := cmd.run(); err != nil {
-			t.Fatal(err)
-		}
-		// ensure no modifying calls against the server
-		forbiddenVerbs := []string{"create", "update", "patch", "delete"}
-		for _, a := range c.fc.Actions() {
-			if funk.Contains(forbiddenVerbs, a.GetVerb()) {
-				t.Errorf("got modifying server call: %v", a)
+	tests := output.ValidTypes
+	for _, tt := range tests {
+		tt := tt
+		t.Run(fmt.Sprintf("output %s", tt), func(t *testing.T) {
+			var buf bytes.Buffer
+			var errOut bytes.Buffer
+			cmd := &initCmd{
+				out:     &buf,
+				errOut:  &errOut,
+				client:  c.client,
+				output:  tt,
+				dryRun:  true,
+				version: "dev",
 			}
-		}
-
-		assert.True(t, len(buf.Bytes()) > 0, "Buffer needs to have an output")
-		// ensure we can decode what was created
-		var obj interface{}
-		decoder := yamlutil.NewYAMLOrJSONDecoder(&buf, 4096)
-		for {
-			err := decoder.Decode(&obj)
-			if err != nil {
-				if err == io.EOF {
-					break
+			// ensure that we can marshal
+			if err := cmd.run(); err != nil {
+				t.Fatal(err)
+			}
+			// ensure no modifying calls against the server
+			forbiddenVerbs := []string{"create", "update", "patch", "delete"}
+			for _, a := range c.fc.Actions() {
+				if funk.Contains(forbiddenVerbs, a.GetVerb()) {
+					t.Errorf("got modifying server call: %v", a)
 				}
-				t.Errorf("error decoding init %s output %s %s", s, err, buf.String())
 			}
-		}
+
+			assert.True(t, len(buf.Bytes()) > 0, "Buffer needs to have an output")
+			// ensure we can decode what was created
+			var obj interface{}
+			decoder := yamlutil.NewYAMLOrJSONDecoder(&buf, 4096)
+			for {
+				err := decoder.Decode(&obj)
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					t.Errorf("error decoding init %s output %s %s", tt, err, buf.String())
+				}
+			}
+		})
 	}
 }
 
@@ -167,50 +172,62 @@ func TestInitCmd_yamlOutput(t *testing.T) {
 	MockCRD(c.client, "issuers.cert-manager.io", "v1alpha2")
 
 	tests := []struct {
-		name       string
-		goldenFile string
-		flags      map[string]string
+		name          string
+		goldenFile    string
+		flags         map[string]string
+		expectedError string
 	}{
-		{"custom namespace", "deploy-kudo-ns.yaml", map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo", "version": "dev"}},
-		{"yaml output", "deploy-kudo.yaml", map[string]string{"dry-run": "true", "output": "yaml", "version": "dev"}},
-		{"service account", "deploy-kudo-sa.yaml", map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo", "version": "dev"}},
-		{"json output", "deploy-kudo.json", map[string]string{"dry-run": "true", "output": "json", "version": "dev"}},
+		{name: "custom namespace", goldenFile: "deploy-kudo-ns.yaml", flags: map[string]string{"dry-run": "true", "output": "yaml", "namespace": "foo", "version": "dev"}},
+		{name: "yaml output", goldenFile: "deploy-kudo.yaml", flags: map[string]string{"dry-run": "true", "output": "yaml", "version": "dev"}},
+		{name: "service account", goldenFile: "deploy-kudo-sa.yaml", flags: map[string]string{"dry-run": "true", "output": "yaml", "service-account": "safoo", "namespace": "foo", "version": "dev"}},
+		{name: "json output", goldenFile: "deploy-kudo.json", flags: map[string]string{"dry-run": "true", "output": "json", "version": "dev"}},
+		{name: "invalid output", expectedError: output.InvalidOutputError, flags: map[string]string{"dry-run": "true", "output": "invalid", "version": "dev"}},
 	}
 
 	for _, tt := range tests {
-		fs := afero.NewMemMapFs()
-		out := &bytes.Buffer{}
-		errOut := &bytes.Buffer{}
-		initCmd := newInitCmd(fs, out, errOut, c.client)
+		tt := tt
 
-		Settings.AddFlags(initCmd.Flags())
+		t.Run(tt.name, func(t *testing.T) {
+			fs := afero.NewMemMapFs()
+			out := &bytes.Buffer{}
+			errOut := &bytes.Buffer{}
+			initCmd := newInitCmd(fs, out, errOut, c.client)
 
-		for f, value := range tt.flags {
-			if err := initCmd.Flags().Set(f, value); err != nil {
-				t.Fatal(err)
+			Settings.AddFlags(initCmd.Flags())
+
+			for f, value := range tt.flags {
+				if err := initCmd.Flags().Set(f, value); err != nil {
+					t.Fatal(err)
+				}
 			}
-		}
 
-		if err := initCmd.RunE(initCmd, []string{}); err != nil {
-			t.Fatal(err, errOut.String())
-		}
-
-		gp := filepath.Join("testdata", tt.goldenFile+".golden")
-
-		if *updateGolden {
-			t.Logf("updating golden file %s", tt.goldenFile)
-
-			//nolint:gosec
-			if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
-				t.Fatalf("failed to update golden file: %s", err)
+			if err := initCmd.RunE(initCmd, []string{}); err != nil {
+				if tt.expectedError != "" {
+					assert.Equal(t, tt.expectedError, err.Error())
+				} else {
+					t.Fatal(err, errOut.String())
+				}
 			}
-		}
-		g, err := ioutil.ReadFile(gp)
-		if err != nil {
-			t.Fatalf("failed reading .golden: %s", err)
-		}
 
-		assert.Equal(t, string(g), out.String(), "for golden file: %s, for test %s", gp, tt.name)
+			if tt.goldenFile != "" {
+				gp := filepath.Join("testdata", tt.goldenFile+".golden")
+
+				if *updateGolden {
+					t.Logf("updating golden file %s", tt.goldenFile)
+
+					//nolint:gosec
+					if err := ioutil.WriteFile(gp, out.Bytes(), 0644); err != nil {
+						t.Fatalf("failed to update golden file: %s", err)
+					}
+				}
+				g, err := ioutil.ReadFile(gp)
+				if err != nil {
+					t.Fatalf("failed reading .golden: %s", err)
+				}
+
+				assert.Equal(t, string(g), out.String(), "for golden file: %s, for test %s", gp, tt.name)
+			}
+		})
 	}
 
 }
@@ -308,7 +325,9 @@ func MockCRD(client *kube.Client, crdName string, apiVersion string) {
 					Spec: extv1beta1.CustomResourceDefinitionSpec{
 						Versions: []extv1beta1.CustomResourceDefinitionVersion{
 							{
-								Name: apiVersion,
+								Name:    apiVersion,
+								Served:  true,
+								Storage: true,
 							},
 						},
 					},

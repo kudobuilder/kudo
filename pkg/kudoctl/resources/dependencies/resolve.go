@@ -2,11 +2,14 @@ package dependencies
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
+	"github.com/spf13/afero"
 	"github.com/thoas/go-funk"
 	"github.com/yourbasic/graph"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
@@ -49,10 +52,13 @@ type Dependency struct {
 	PackageName string
 }
 
-// Resolve resolves all dependencies of an OperatorVersion.
-// Dependencies are resolved recursively.
-// Cyclic dependencies are detected and result in an error.
-func Resolve(operatorVersion *v1beta1.OperatorVersion, resolver pkgresolver.Resolver) ([]Dependency, error) {
+// Resolve resolves all dependencies of an OperatorVersion. Dependencies are resolved recursively.
+// Cyclic dependencies are detected and result in an error. operatorArgument parameter is string that
+// the user passed to install/upgrade an operator which is used to determine whether this is a local
+// operator in a directory. In that case all its relative dependencies (if any exist) will be relative
+// to the operator directory (the one with `operator.yaml` file).
+// See github.com/kudobuilder/kudo/issues/1701 for additional context.
+func Resolve(operatorArgument string, operatorVersion *kudoapi.OperatorVersion, resolver pkgresolver.Resolver) ([]Dependency, error) {
 	root := packages.Resources{
 		OperatorVersion: operatorVersion,
 	}
@@ -66,7 +72,10 @@ func Resolve(operatorVersion *v1beta1.OperatorVersion, resolver pkgresolver.Reso
 		edges: []map[int]struct{}{{}},
 	}
 
-	if err := dependencyWalk(&dependencies, &g, root, 0, resolver); err != nil {
+	// Here we only care whether the path is absolute or not so we can ignore the error
+	operatorDir, _ := operatorAbsPath(operatorArgument)
+
+	if err := dependencyWalk(&dependencies, &g, root, 0, resolver, operatorDir); err != nil {
 		return nil, err
 	}
 
@@ -79,15 +88,34 @@ func dependencyWalk(
 	g *dependencyGraph,
 	parent packages.Resources,
 	parentIndex int,
-	resolver pkgresolver.Resolver) error {
+	resolver pkgresolver.Resolver,
+	operatorDirectory *string) error {
 	//nolint:errcheck
-	childrenTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task v1beta1.Task) bool {
+	childrenTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task kudoapi.Task) bool {
 		return task.Kind == engtask.KudoOperatorTaskKind
-	}).([]v1beta1.Task)
+	}).([]kudoapi.Task)
 
 	for _, childTask := range childrenTasks {
-		childPkg, err := resolver.Resolve(
-			childTask.Spec.KudoOperatorTaskSpec.Package,
+		childPackageName := childTask.Spec.KudoOperatorTaskSpec.Package
+
+		// if the path to a child dependency is a relative one, we construct the absolute path for the
+		// resolver by combining the absolute path for the operator directory with the relative dependency path
+		// a relative dependency path must begin with either './' or '../'
+		isRelativePackage := strings.HasPrefix(childPackageName, "./") || strings.HasPrefix(childPackageName, "../")
+		if isRelativePackage {
+			if operatorDirectory == nil {
+				return fmt.Errorf("a dependency with a relative path %q is only allowed in a parent %v when it is a local directory", childPackageName, parent.OperatorVersion.FullyQualifiedName())
+			}
+			childDirectory, err := operatorAbsPath(filepath.Join(*operatorDirectory, childPackageName))
+			if err != nil {
+				return fmt.Errorf("local dependency %s of the parent %s has an invalid path: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
+			}
+			childPackageName = *childDirectory
+
+		}
+
+		childRes, err := resolver.Resolve(
+			childPackageName,
 			childTask.Spec.KudoOperatorTaskSpec.AppVersion,
 			childTask.Spec.KudoOperatorTaskSpec.OperatorVersion)
 		if err != nil {
@@ -96,14 +124,14 @@ func dependencyWalk(
 		}
 
 		childDependency := Dependency{
-			Resources:   *childPkg.Resources,
+			Resources:   *childRes,
 			PackageName: childTask.Spec.KudoOperatorTaskSpec.Package,
 		}
 
 		newPackage := false
 		childIndex := indexOf(dependencies, &childDependency)
 		if childIndex == -1 {
-			clog.V(2).Printf("Adding new dependency %s", childPkg.Resources.OperatorVersion.FullyQualifiedName())
+			clog.V(2).Printf("Adding new dependency %s", childRes.OperatorVersion.FullyQualifiedName())
 			newPackage = true
 
 			*dependencies = append(*dependencies, childDependency)
@@ -118,12 +146,16 @@ func dependencyWalk(
 
 		if !graph.Acyclic(g) {
 			return fmt.Errorf(
-				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childPkg.Resources.OperatorVersion.FullyQualifiedName())
+				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childRes.OperatorVersion.FullyQualifiedName())
 		}
 
 		// We only need to walk the dependencies if the package is new
 		if newPackage {
-			if err := dependencyWalk(dependencies, g, *childPkg.Resources, childIndex, resolver); err != nil {
+			var childOperatorDirectory *string
+			if isRelativePackage {
+				childOperatorDirectory = &childPackageName
+			}
+			if err := dependencyWalk(dependencies, g, *childRes, childIndex, resolver, childOperatorDirectory); err != nil {
 				return err
 			}
 		}
@@ -144,6 +176,32 @@ func indexOf(dependencies *[]Dependency, dependency *Dependency) int {
 	return -1
 }
 
-func fullyQualifiedName(kt v1beta1.KudoOperatorTaskSpec) string {
-	return fmt.Sprintf("%s-%s", v1beta1.OperatorVersionName(kt.Package, kt.OperatorVersion), kt.AppVersion)
+// fullyQualifiedName formats a TaskSpec for human readable consumption.
+func fullyQualifiedName(kt kudoapi.KudoOperatorTaskSpec) string {
+	operatorVersion := kt.OperatorVersion
+	if operatorVersion == "" {
+		operatorVersion = "any"
+	}
+	appVersion := kt.AppVersion
+	if appVersion == "" {
+		appVersion = "any"
+	}
+
+	return fmt.Sprintf("Operator: %q, OperatorVersion: %q, AppVersion %q", kt.Package, operatorVersion, appVersion)
+}
+
+func operatorAbsPath(path string) (*string, error) {
+	fs := afero.NewOsFs()
+
+	ok, err := afero.IsDir(fs, path)
+	// force local operators usage to be either absolute or express a relative path
+	// or put another way, a name can NOT be mistaken to be the name of a local folder
+	if ok && filepath.Base(path) != path {
+		abs, err := filepath.Abs(path)
+		if err == nil {
+			return &abs, nil
+		}
+		return nil, fmt.Errorf("failed to detect an absolute path for %q: %v", path, err)
+	}
+	return nil, fmt.Errorf("%q is not a valid directory: %v", path, err)
 }

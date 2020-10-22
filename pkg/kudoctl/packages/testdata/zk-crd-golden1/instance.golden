@@ -6,6 +6,6 @@ metadata:
   name: zk1
 spec:
   operatorVersion:
-    name: zookeeper-0.1.0
+    name: zookeeper-3.4.10-0.1.0
     type: OperatorVersions
   name: "zookeeper-0.1.0"

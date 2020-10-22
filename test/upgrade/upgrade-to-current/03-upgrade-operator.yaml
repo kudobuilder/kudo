@@ -1,0 +1,5 @@
+apiVersion: kudo.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo upgrade ./simple-op-0.2.0 --instance simple-op -p replicas=1 -p unchangeable=fixedvalue
+    namespaced: true

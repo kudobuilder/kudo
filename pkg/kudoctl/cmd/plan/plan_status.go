@@ -10,14 +10,22 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/xlab/treeprint"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
+// Options are the configurable options for plans
+type StatusOptions struct {
+	Out      io.Writer
+	Instance string
+	Wait     bool
+	Output   output.Type
+}
+
 // Status runs the plan status command
-func Status(options *Options, settings *env.Settings) error {
+func Status(options *StatusOptions, settings *env.Settings) error {
 	kc, err := env.GetClient(settings)
 	if err != nil {
 		return err
@@ -26,7 +34,7 @@ func Status(options *Options, settings *env.Settings) error {
 	return status(kc, options, settings.Namespace)
 }
 
-func statusFormatted(kc *kudo.Client, options *Options, ns string) error {
+func statusFormatted(kc *kudo.Client, options *StatusOptions, ns string) error {
 	instance, err := kc.GetInstance(options.Instance, ns)
 	if err != nil {
 		return err
@@ -37,7 +45,7 @@ func statusFormatted(kc *kudo.Client, options *Options, ns string) error {
 	return output.WriteObject(instance.Status, options.Output, options.Out)
 }
 
-func status(kc *kudo.Client, options *Options, ns string) error {
+func status(kc *kudo.Client, options *StatusOptions, ns string) error {
 
 	if options.Output != "" {
 		return statusFormatted(kc, options, ns)
@@ -73,7 +81,7 @@ func status(kc *kudo.Client, options *Options, ns string) error {
 			return nil
 		}
 
-		getPhaseStrategy := func(s string) v1beta1.Ordering {
+		getPhaseStrategy := func(s string) kudoapi.Ordering {
 			for _, plan := range ov.Spec.Plans {
 				for _, phase := range plan.Phases {
 					if phase.Name == s {

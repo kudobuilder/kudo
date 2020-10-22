@@ -30,4 +30,7 @@ type Parameter struct {
 
 	// Specifies if the parameter can be changed after the initial installation of the operator
 	Immutable *bool `json:"immutable,omitempty"`
+
+	// Defines a list of allowed values. If Default is set and Enum is not nil, the value must be in this list as well
+	Enum *[]string `json:"enum,omitempty"`
 }

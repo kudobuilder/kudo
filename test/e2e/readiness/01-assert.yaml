@@ -1,0 +1,8 @@
+apiVersion: kudo.dev/v1beta1
+kind: Instance
+metadata:
+  name: first-operator
+status:
+  conditions:
+    - type: Ready
+      status: "False"

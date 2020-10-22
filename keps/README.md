@@ -25,8 +25,9 @@
 | [0018 - Controller redesign](0018-controller-overhaul.md) | :heavy_plus_sign: | implementable | Refactoring of KUDO controller |
 | [0019 - Versioning of Operator Packages](0019-package-api-versioning.md) | :heavy_plus_sign: | implementable | Connection between the different versions that describe an operator |
 | [0020 - Manual plan execution](0020-manual-plan-execution.md) | :heavy_check_mark: | implemented |  |
+| [0021 - KUDO Upgrades](0021-kudo-upgrade.md) | :heavy_check_mark: | implemented | Details how KUDO installations are upgraded |
 | [0022 - Diagnostics Bundle](0022-diagnostics-bundle.md) | :question: | provisional | Automatic collection of diagnostics data for KUDO operators |
-| [0023 - Enabling and Disabling features in KUDO Operators](0023-enable-disable-features.md) | :heavy_plus_sign: | implementable | Enabling and Disabling features in KUDO Operators a.k.a. the Toggle task |
+| [0023 - Enabling and Disabling features in KUDO Operators](0023-enable-disable-features.md) | :heavy_check_mark: | implemented | Enabling and Disabling features in KUDO Operators a.k.a. the Toggle task |
 | [0024 - Enhanced Operator Parameters](0024-parameter-enhancement.md) | :heavy_check_mark: | implemented | Parameter types other than `string` |
 | [0025 - Template toYaml function](0025-template-to-yaml-function.md) | :heavy_check_mark: | implemented | New toYaml function for use in templates |
 | [0026 - Reading parameter values from a file](0026-reading-parameter-values-from-a-file.md) | :heavy_check_mark: | implemented | Reading parameter values from a file |
@@ -34,3 +35,7 @@
 | [0029 - Operator Dependencies](0029-operator-dependencies.md) | :heavy_check_mark: | implemented | Introducing operators depending on other operators |
 | [0030 - Immutable parameters](0030-immutable-parameters.md) | :question: | provisional | Immutable parameters that can only be set on installation |
 | [0031 - Namespace Management](0031-namespace-management.md) | :question: | provisional | Defining the way in which KUDO will work and manage namespaces |
+| [0032 - Community Repository Management](0032-community-repository-management.md) | :heavy_check_mark: | implemented | Details on how to add operator to the community repository |
+| [0033 - Structured Parameters](0033-structured-parameters.md) | :question: | provisional | Structured parameters with JSON-schema |
+| [0034 - KUDO instance readiness](0034-instance-health.md) | :question: | provisional | Provide a way to monitor readiness of KUDO instance post-deployment |
+| [0035 - JSON-schema export](0035-json-schema-export.md) | :question: | provisional | JSON-schema export |

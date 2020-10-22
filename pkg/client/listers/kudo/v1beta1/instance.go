@@ -24,8 +24,10 @@ import (
 )
 
 // InstanceLister helps list Instances.
+// All objects returned here must be treated as read-only.
 type InstanceLister interface {
 	// List lists all Instances in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.Instance, err error)
 	// Instances returns an object that can list and get Instances.
 	Instances(namespace string) InstanceNamespaceLister
@@ -56,10 +58,13 @@ func (s *instanceLister) Instances(namespace string) InstanceNamespaceLister {
 }
 
 // InstanceNamespaceLister helps list and get Instances.
+// All objects returned here must be treated as read-only.
 type InstanceNamespaceLister interface {
 	// List lists all Instances in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1beta1.Instance, err error)
 	// Get retrieves the Instance from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1beta1.Instance, error)
 	InstanceNamespaceListerExpansion
 }

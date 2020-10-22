@@ -4,10 +4,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
+	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/resources/install"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
@@ -34,7 +34,7 @@ func Package(
 	namespace string,
 	resources packages.Resources,
 	parameters map[string]string,
-	resolver resolver.Resolver,
+	dependencies []deps.Dependency,
 	options Options) error {
 	clog.V(3).Printf(
 		"Preparing %s/%s:%s for installation",
@@ -65,7 +65,7 @@ func Package(
 	}
 
 	if err := install.OperatorAndOperatorVersion(
-		client, resources.Operator, resources.OperatorVersion, resolver); err != nil {
+		client, resources.Operator, resources.OperatorVersion, dependencies); err != nil {
 		return err
 	}
 
@@ -111,7 +111,7 @@ func applyOverrides(
 	}
 }
 
-func validateParameters(instance v1beta1.Instance, parameters []v1beta1.Parameter) error {
+func validateParameters(instance kudoapi.Instance, parameters []kudoapi.Parameter) error {
 	missingParameters := []string{}
 
 	for _, p := range parameters {

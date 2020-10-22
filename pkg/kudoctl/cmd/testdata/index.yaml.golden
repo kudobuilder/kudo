@@ -2,7 +2,7 @@ apiVersion: v1
 entries:
   zookeeper:
   - appVersion: 3.4.10
-    digest: 050c5e67279c41e40e054d0e93d1361187ba8c9a289b5a00eb1c68cef4f0b18e
+    digest: 3b25556108002d8e922bb381c936827d4e34586a57453c286b2d9ed39cb129aa
     maintainers:
     - email: avarkockova@mesosphere.com
       name: Alena Varkockova

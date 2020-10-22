@@ -20,7 +20,7 @@ import (
 
 // WriteTgz takes a path to operator files and creates a tgz of those files with the destination and name provided
 func WriteTgz(fs afero.Fs, path string, destination string, overwrite bool) (target string, err error) {
-	pkg, err := reader.FromDir(fs, path)
+	pkg, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return "", fmt.Errorf("invalid operator in path: %v error: %w", path, err)
 	}

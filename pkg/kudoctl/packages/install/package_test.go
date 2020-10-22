@@ -12,7 +12,7 @@ import (
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/client/clientset/versioned/fake"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -23,7 +23,7 @@ var update = flag.Bool("update", false, "update .golden files")
 
 func Test_InstallPackage(t *testing.T) {
 	resources := packages.Resources{
-		Operator: &v1beta1.Operator{
+		Operator: &kudoapi.Operator{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kudo.dev/v1beta1",
 				Kind:       "Operator",
@@ -31,11 +31,11 @@ func Test_InstallPackage(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
-			Spec: v1beta1.OperatorSpec{
+			Spec: kudoapi.OperatorSpec{
 				KubernetesVersion: "1.15",
 			},
 		},
-		Instance: &v1beta1.Instance{
+		Instance: &kudoapi.Instance{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kudo.dev/v1beta1",
 				Kind:       "Instance",
@@ -46,13 +46,13 @@ func Test_InstallPackage(t *testing.T) {
 				},
 				Name: "test",
 			},
-			Spec: v1beta1.InstanceSpec{
+			Spec: kudoapi.InstanceSpec{
 				OperatorVersion: v1.ObjectReference{
 					Name: "test-1.0",
 				},
 			},
 		},
-		OperatorVersion: &v1beta1.OperatorVersion{
+		OperatorVersion: &kudoapi.OperatorVersion{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "kudo.dev/v1beta1",
 				Kind:       "OperatorVersion",
@@ -60,7 +60,7 @@ func Test_InstallPackage(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-1.0", "operator"),
 			},
-			Spec: v1beta1.OperatorVersionSpec{
+			Spec: kudoapi.OperatorVersionSpec{
 				Version: "1.0",
 			},
 		},
@@ -68,16 +68,16 @@ func Test_InstallPackage(t *testing.T) {
 	tv := true
 	tests := []struct {
 		name              string
-		parameters        []v1beta1.Parameter
+		parameters        []kudoapi.Parameter
 		installParameters map[string]string
 		skipInstance      bool
 		err               string
 	}{
-		{"all parameters with defaults", []v1beta1.Parameter{{Name: "param", Required: &tv, Default: convert.StringPtr("aaa")}}, map[string]string{}, false, ""},
-		{"missing parameter provided", []v1beta1.Parameter{{Name: "param", Required: &tv}}, map[string]string{"param": "value"}, false, ""},
-		{"missing parameter", []v1beta1.Parameter{{Name: "param", Required: &tv, Default: nil}}, map[string]string{}, false, "missing required parameters during installation: param"},
-		{"multiple missing parameter", []v1beta1.Parameter{{Name: "param", Required: &tv}, {Name: "param2", Required: &tv}}, map[string]string{}, false, "missing required parameters during installation: param,param2"},
-		{"skip instance ignores missing parameter", []v1beta1.Parameter{{Name: "param", Required: &tv}}, map[string]string{}, true, ""},
+		{"all parameters with defaults", []kudoapi.Parameter{{Name: "param", Required: &tv, Default: convert.StringPtr("aaa")}}, map[string]string{}, false, ""},
+		{"missing parameter provided", []kudoapi.Parameter{{Name: "param", Required: &tv}}, map[string]string{"param": "value"}, false, ""},
+		{"missing parameter", []kudoapi.Parameter{{Name: "param", Required: &tv, Default: nil}}, map[string]string{}, false, "missing required parameters during installation: param"},
+		{"multiple missing parameter", []kudoapi.Parameter{{Name: "param", Required: &tv}, {Name: "param2", Required: &tv}}, map[string]string{}, false, "missing required parameters during installation: param,param2"},
+		{"skip instance ignores missing parameter", []kudoapi.Parameter{{Name: "param", Required: &tv}}, map[string]string{}, true, ""},
 	}
 
 	for _, tt := range tests {
@@ -115,19 +115,19 @@ func Test_InstallPackage(t *testing.T) {
 
 func testResources() packages.Resources {
 	return packages.Resources{
-		Operator: &v1beta1.Operator{
+		Operator: &kudoapi.Operator{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "OperatorName",
 				Namespace: "default",
 			},
 		},
-		OperatorVersion: &v1beta1.OperatorVersion{
-			Spec: v1beta1.OperatorVersionSpec{
+		OperatorVersion: &kudoapi.OperatorVersion{
+			Spec: kudoapi.OperatorVersionSpec{
 				AppVersion: "1.0",
 				Version:    "2.0",
 			},
 		},
-		Instance: &v1beta1.Instance{
+		Instance: &kudoapi.Instance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "InstanceName",
 				Namespace: "default",

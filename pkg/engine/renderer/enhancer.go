@@ -51,7 +51,7 @@ func (de *DefaultEnhancer) Apply(sourceObjs []runtime.Object, metadata Metadata)
 
 		isNamespaced, err := resource.IsNamespacedObject(obj, de.Discovery)
 		if err != nil {
-			return nil, fmt.Errorf("failed to determine if object %s is namespaced: %v", obj.GetObjectKind(), err)
+			return nil, fmt.Errorf("%wfailed to determine if object %s is namespaced: %v", engine.ErrFatalExecution, obj.GetObjectKind(), err)
 		}
 
 		// Note: Cross-namespace owner references are disallowed by design. This means:

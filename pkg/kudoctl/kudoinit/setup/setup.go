@@ -2,6 +2,7 @@ package setup
 
 import (
 	"fmt"
+	"io"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -67,12 +68,9 @@ func (i *Installer) VerifyInstallation(client *kube.Client, result *verifier.Res
 	return nil
 }
 
-func requiredMigrations() []migration.Migrater {
-
+func requiredMigrations(client *kube.Client, dryRun bool) []migration.Migrater {
 	// Determine which migrations to run
-	return []migration.Migrater{
-		// Implement actual migrations
-	}
+	return []migration.Migrater{}
 }
 
 func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Result) error {
@@ -87,12 +85,15 @@ func (i *Installer) PreUpgradeVerify(client *kube.Client, result *verifier.Resul
 		return nil
 	}
 
-	// Step 2 - Verify that any migration is possible
-	migrations := requiredMigrations()
-	clog.Printf("Verify that %d required migrations can be applied", len(migrations))
+	// Step 2 - Verify that all migrations can run (with dryRun)
+	migrations := requiredMigrations(client, true)
+	clog.V(1).Printf("Verify that %d required migrations can be applied", len(migrations))
 	for _, m := range migrations {
-		if err := m.CanMigrate(client); err != nil {
+		if err := m.CanMigrate(); err != nil {
 			result.AddErrors(fmt.Errorf("migration %s failed install check: %v", m, err).Error())
+		}
+		if err := m.Migrate(); err != nil {
+			result.AddErrors(fmt.Errorf("migration %s failed dry-run: %v", m, err).Error())
 		}
 	}
 
@@ -116,10 +117,10 @@ func (i *Installer) Upgrade(client *kube.Client) error {
 	}
 
 	// Step 5 - Execute Migrations
-	migrations := requiredMigrations()
+	migrations := requiredMigrations(client, false)
 	clog.Printf("Run %d migrations", len(migrations))
 	for _, m := range migrations {
-		if err := m.Migrate(client); err != nil {
+		if err := m.Migrate(); err != nil {
 			return fmt.Errorf("migration %s failed to execute: %v", m, err)
 		}
 	}
@@ -166,4 +167,23 @@ func (i *Installer) Resources() []runtime.Object {
 	}
 
 	return allManifests
+}
+
+// verifyExistingInstallation checks if the current installation is valid and as expected
+func VerifyExistingInstallation(v kudoinit.InstallVerifier, client *kube.Client, out io.Writer) (bool, error) {
+	clog.V(4).Printf("verify existing installation")
+	result := verifier.NewResult()
+	if err := v.VerifyInstallation(client, &result); err != nil {
+		return false, err
+	}
+	if out != nil {
+		result.PrintWarnings(out)
+	}
+	if !result.IsValid() {
+		if out != nil {
+			result.PrintErrors(out)
+		}
+		return false, nil
+	}
+	return true, nil
 }

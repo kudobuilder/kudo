@@ -8,6 +8,13 @@ import (
 	"github.com/gosuri/uitable"
 )
 
+// ResultForOutput provides a serialization format for yaml/json output of a result
+type ResultForOutput struct {
+	Errors   []string `json:"errors"`
+	Warnings []string `json:"warnings"`
+	Valid    bool     `json:"valid"`
+}
+
 // Result holds the errors and warnings of a package verification
 type Result struct {
 	Errors   []string
@@ -34,6 +41,14 @@ func NewWarning(warn ...string) Result {
 	return result
 }
 
+func (vr *Result) ForOutput() ResultForOutput {
+	return ResultForOutput{
+		Errors:   vr.Errors,
+		Warnings: vr.Warnings,
+		Valid:    vr.IsValid(),
+	}
+}
+
 // AddErrors adds an arbitrary error string to the verification result
 func (vr *Result) AddErrors(err ...string) { vr.Errors = append(vr.Errors, err...) }
 
@@ -45,9 +60,17 @@ func (vr *Result) AddParamError(paramName string, reason string) {
 	vr.AddErrors(fmt.Sprintf("parameter %q %s", paramName, reason))
 }
 
+func (vr *Result) AddGroupError(groupName string, reason string) {
+	vr.AddErrors(fmt.Sprintf("parameter group %q %s", groupName, reason))
+}
+
 // AddParamWarning adds a formatted warning string for a package parameter error
 func (vr *Result) AddParamWarning(paramName string, reason string) {
 	vr.AddWarnings(fmt.Sprintf("parameter %q %s", paramName, reason))
+}
+
+func (vr *Result) AddGroupWarning(groupName string, reason string) {
+	vr.AddWarnings(fmt.Sprintf("parameter group %q %s", groupName, reason))
 }
 
 // Merge method merges the errors and warnings from two verification results

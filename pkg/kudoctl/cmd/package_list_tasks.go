@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
 type packageListTasksCmd struct {
@@ -55,25 +55,25 @@ func newPackageListTasksCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 
 // run provides a table listing the tasks for an operator.
 func (c *packageListTasksCmd) run(settings *env.Settings) error {
-	pf, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
+	pr, err := packageDiscovery(c.fs, settings, c.RepoName, c.pathOrName, c.AppVersion, c.OperatorVersion)
 	if err != nil {
 		return err
 	}
-	displayTasksTable(pf.Files, c.out)
+	displayTasksTable(pr.OperatorVersion.Spec.Tasks, c.out)
 	return nil
 }
 
-func displayTasksTable(pf *packages.Files, out io.Writer) {
+func displayTasksTable(tasks []kudoapi.Task, out io.Writer) {
 	table := uitable.New()
 	table.AddRow("Name", "Kind", "Resources")
-	for _, task := range pf.Operator.Tasks {
+	for _, task := range tasks {
 		if task.Kind == "Pipe" {
 			table.AddRow(task.Name, task.Kind, task.Spec.Pod)
 		} else {
 			table.AddRow(task.Name, task.Kind, task.Spec.Resources)
 		}
 	}
-	if len(pf.Operator.Tasks) == 0 {
+	if len(tasks) == 0 {
 		fmt.Fprintf(out, "no tasks  found\n")
 	} else {
 		fmt.Fprintln(out, table)

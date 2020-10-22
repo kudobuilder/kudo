@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	kudov1beta1 "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 )
 
 // Reconciler reconciles an Operator object
@@ -36,7 +36,7 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(
 	mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&kudov1beta1.Operator{}).
+		For(&kudoapi.Operator{}).
 		Complete(r)
 }
 
@@ -45,7 +45,7 @@ func (r *Reconciler) SetupWithManager(
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
 func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the operator
-	operator := &kudov1beta1.Operator{}
+	operator := &kudoapi.Operator{}
 	err := r.Get(context.TODO(), request.NamespacedName, operator)
 	if err != nil {
 		if errors.IsNotFound(err) {

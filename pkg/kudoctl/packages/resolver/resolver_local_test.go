@@ -14,7 +14,7 @@ func TestLocalResolver_GetPackage(t *testing.T) {
 		return
 	}
 
-	assert.EqualValues(t, "zookeeper", pkg.Resources.Operator.Name)
+	assert.EqualValues(t, "zookeeper", pkg.Operator.Name)
 }
 
 func TestLocalFinder_Failure(t *testing.T) {

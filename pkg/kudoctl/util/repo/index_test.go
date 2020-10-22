@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 )
 
@@ -149,7 +149,7 @@ func getTestPackageVersion(name string, version string) PackageVersion {
 			OperatorVersion: version,
 			AppVersion:      "0.7.0",
 			Description:     "fancy description is here",
-			Maintainers: []*v1beta1.Maintainer{
+			Maintainers: []*kudoapi.Maintainer{
 				{Name: "Fabian Baier", Email: "<fabian@mesosphere.io>"},
 				{Name: "Tom Runyon", Email: "<runyontr@gmail.com>"},
 				{Name: "Ken Sipe", Email: "<kensipe@gmail.com>"}},
@@ -199,7 +199,7 @@ func TestMapPackageFileToPackageVersion(t *testing.T) {
 		AppVersion:        "2.2.2",
 		KUDOVersion:       "0.5.0",
 		KubernetesVersion: "1.15",
-		Maintainers:       []*v1beta1.Maintainer{{Name: "Ken Sipe"}},
+		Maintainers:       []*kudoapi.Maintainer{{Name: "Ken Sipe"}},
 		URL:               "http://kudo.dev/kafka",
 	}
 	pf := packages.Files{

@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/task"
 )
@@ -31,8 +31,8 @@ func Test_makePipes(t *testing.T) {
 	tests := []struct {
 		name     string
 		planName string
-		plan     *v1beta1.Plan
-		tasks    []v1beta1.Task
+		plan     *kudoapi.Plan
+		tasks    []kudoapi.Task
 		emeta    *engine.Metadata
 		want     map[string]string
 		wantErr  bool
@@ -40,33 +40,33 @@ func Test_makePipes(t *testing.T) {
 		{
 			name:     "no tasks, no pipes",
 			planName: "deploy",
-			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+			plan: &kudoapi.Plan{Strategy: "serial", Phases: []kudoapi.Phase{
 				{
-					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+					Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{
 						{
 							Name: "step", Tasks: []string{}},
 					}},
 			}},
-			tasks: []v1beta1.Task{},
+			tasks: []kudoapi.Task{},
 			emeta: meta,
 			want:  map[string]string{},
 		},
 		{
 			name:     "no pipe tasks, no pipes",
 			planName: "deploy",
-			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+			plan: &kudoapi.Plan{Strategy: "serial", Phases: []kudoapi.Phase{
 				{
-					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+					Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{
 						{
 							Name: "step", Tasks: []string{"task"}},
 					}},
 			}},
-			tasks: []v1beta1.Task{
+			tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Dummy",
-					Spec: v1beta1.TaskSpec{
-						DummyTaskSpec: v1beta1.DummyTaskSpec{Done: false},
+					Spec: kudoapi.TaskSpec{
+						DummyTaskSpec: kudoapi.DummyTaskSpec{Done: false},
 					},
 				},
 			},
@@ -76,21 +76,21 @@ func Test_makePipes(t *testing.T) {
 		{
 			name:     "one pipe task, one pipes element",
 			planName: "deploy",
-			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+			plan: &kudoapi.Plan{Strategy: "serial", Phases: []kudoapi.Phase{
 				{
-					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+					Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{
 						{
 							Name: "step", Tasks: []string{"task"}},
 					}},
 			}},
-			tasks: []v1beta1.Task{
+			tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Pipe",
-					Spec: v1beta1.TaskSpec{
-						PipeTaskSpec: v1beta1.PipeTaskSpec{
+					Spec: kudoapi.TaskSpec{
+						PipeTaskSpec: kudoapi.PipeTaskSpec{
 							Pod: "pipe-pod.yaml",
-							Pipe: []v1beta1.PipeSpec{
+							Pipe: []kudoapi.PipeSpec{
 								{
 									File: "foo.txt",
 									Kind: "Secret",
@@ -107,21 +107,21 @@ func Test_makePipes(t *testing.T) {
 		{
 			name:     "two pipe tasks, two pipes element",
 			planName: "deploy",
-			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+			plan: &kudoapi.Plan{Strategy: "serial", Phases: []kudoapi.Phase{
 				{
-					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+					Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{
 						{Name: "stepOne", Tasks: []string{"task-one"}},
 						{Name: "stepTwo", Tasks: []string{"task-two"}},
 					}},
 			}},
-			tasks: []v1beta1.Task{
+			tasks: []kudoapi.Task{
 				{
 					Name: "task-one",
 					Kind: "Pipe",
-					Spec: v1beta1.TaskSpec{
-						PipeTaskSpec: v1beta1.PipeTaskSpec{
+					Spec: kudoapi.TaskSpec{
+						PipeTaskSpec: kudoapi.PipeTaskSpec{
 							Pod: "pipe-pod.yaml",
-							Pipe: []v1beta1.PipeSpec{
+							Pipe: []kudoapi.PipeSpec{
 								{
 									File: "foo.txt",
 									Kind: "Secret",
@@ -134,10 +134,10 @@ func Test_makePipes(t *testing.T) {
 				{
 					Name: "task-two",
 					Kind: "Pipe",
-					Spec: v1beta1.TaskSpec{
-						PipeTaskSpec: v1beta1.PipeTaskSpec{
+					Spec: kudoapi.TaskSpec{
+						PipeTaskSpec: kudoapi.PipeTaskSpec{
 							Pod: "pipe-pod.yaml",
-							Pipe: []v1beta1.PipeSpec{
+							Pipe: []kudoapi.PipeSpec{
 								{
 									File: "bar.txt",
 									Kind: "ConfigMap",
@@ -157,21 +157,21 @@ func Test_makePipes(t *testing.T) {
 		{
 			name:     "one pipe task, duplicated pipe keys",
 			planName: "deploy",
-			plan: &v1beta1.Plan{Strategy: "serial", Phases: []v1beta1.Phase{
+			plan: &kudoapi.Plan{Strategy: "serial", Phases: []kudoapi.Phase{
 				{
-					Name: "phase", Strategy: "serial", Steps: []v1beta1.Step{
+					Name: "phase", Strategy: "serial", Steps: []kudoapi.Step{
 						{
 							Name: "step", Tasks: []string{"task"}},
 					}},
 			}},
-			tasks: []v1beta1.Task{
+			tasks: []kudoapi.Task{
 				{
 					Name: "task",
 					Kind: "Pipe",
-					Spec: v1beta1.TaskSpec{
-						PipeTaskSpec: v1beta1.PipeTaskSpec{
+					Spec: kudoapi.TaskSpec{
+						PipeTaskSpec: kudoapi.PipeTaskSpec{
 							Pod: "pipe-pod.yaml",
-							Pipe: []v1beta1.PipeSpec{
+							Pipe: []kudoapi.PipeSpec{
 								{
 									File: "foo.txt",
 									Kind: "Secret",
@@ -231,7 +231,7 @@ func TestParameterDiff(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			diff := v1beta1.ParameterDiff(old, tt.new)
+			diff := kudoapi.ParameterDiff(old, tt.new)
 			assert.Equal(t, tt.diff, diff)
 		})
 	}
@@ -258,7 +258,7 @@ func TestRichParameterDiff(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			changed, removed := v1beta1.RichParameterDiff(old, tt.new)
+			changed, removed := kudoapi.RichParameterDiff(old, tt.new)
 			assert.Equal(t, tt.changed, changed, "unexpected difference in changed parameters")
 			assert.Equal(t, tt.removed, removed, "unexpected difference in removed parameters")
 		})
@@ -295,17 +295,17 @@ func TestEventFilterForDelete(t *testing.T) {
 }
 
 func Test_scheduledPlan(t *testing.T) {
-	ov := &v1beta1.OperatorVersion{
+	ov := &kudoapi.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
-		Spec:       v1beta1.OperatorVersionSpec{Plans: map[string]v1beta1.Plan{"cleanup": {}}},
+		Spec:       kudoapi.OperatorVersionSpec{Plans: map[string]kudoapi.Plan{"cleanup": {}}},
 	}
 
-	idle := &v1beta1.Instance{
+	idle := &kudoapi.Instance{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
-		Spec: v1beta1.InstanceSpec{
-			PlanExecution: v1beta1.PlanExecution{
+		Spec: kudoapi.InstanceSpec{
+			PlanExecution: kudoapi.PlanExecution{
 				PlanName: "",
 				UID:      "",
 			},
@@ -314,8 +314,8 @@ func Test_scheduledPlan(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		i        *v1beta1.Instance
-		ov       *v1beta1.OperatorVersion
+		i        *kudoapi.Instance
+		ov       *kudoapi.OperatorVersion
 		wantPlan string
 		wantUID  types.UID
 	}{
@@ -328,7 +328,7 @@ func Test_scheduledPlan(t *testing.T) {
 		},
 		{
 			name: "scheduled instance return the scheduled plan and uid",
-			i: func() *v1beta1.Instance {
+			i: func() *kudoapi.Instance {
 				i := idle.DeepCopy()
 				i.Spec.PlanExecution.PlanName = "deploy"
 				i.Spec.PlanExecution.UID = "111-222-333-444"
@@ -340,7 +340,7 @@ func Test_scheduledPlan(t *testing.T) {
 		},
 		{
 			name: "instance that is being deleted returns the cleanup plan and uid",
-			i: func() *v1beta1.Instance {
+			i: func() *kudoapi.Instance {
 				i := idle.DeepCopy()
 				i.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)}
 				i.ObjectMeta.Finalizers = []string{"kudo.dev.instance.cleanup"}
@@ -352,7 +352,7 @@ func Test_scheduledPlan(t *testing.T) {
 		},
 		{
 			name: "cleanup is not scheduled again when already running",
-			i: func() *v1beta1.Instance {
+			i: func() *kudoapi.Instance {
 				i := idle.DeepCopy()
 				i.Spec.PlanExecution.PlanName = "cleanup"
 				i.Spec.PlanExecution.UID = "111-222-333-444"
@@ -379,23 +379,23 @@ func Test_scheduledPlan(t *testing.T) {
 }
 
 func Test_resetPlanStatusIfPlanIsNew(t *testing.T) {
-	status := v1beta1.PlanStatus{
+	status := kudoapi.PlanStatus{
 		Name:   "deploy",
-		Status: v1beta1.ExecutionInProgress,
+		Status: kudoapi.ExecutionInProgress,
 		UID:    "111-222-333",
 	}
 
-	scheduled := &v1beta1.Instance{
+	scheduled := &kudoapi.Instance{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
-		Spec: v1beta1.InstanceSpec{
-			PlanExecution: v1beta1.PlanExecution{
+		Spec: kudoapi.InstanceSpec{
+			PlanExecution: kudoapi.PlanExecution{
 				PlanName: "",
 				UID:      "",
 			},
 		},
-		Status: v1beta1.InstanceStatus{
-			PlanStatus: map[string]v1beta1.PlanStatus{
+		Status: kudoapi.InstanceStatus{
+			PlanStatus: map[string]kudoapi.PlanStatus{
 				"deploy": status,
 			},
 		},
@@ -403,10 +403,10 @@ func Test_resetPlanStatusIfPlanIsNew(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		i       *v1beta1.Instance
+		i       *kudoapi.Instance
 		plan    string
 		uid     types.UID
-		want    *v1beta1.PlanStatus
+		want    *kudoapi.PlanStatus
 		wantErr bool
 	}{
 		{
@@ -430,9 +430,9 @@ func Test_resetPlanStatusIfPlanIsNew(t *testing.T) {
 			i:    scheduled,
 			plan: "deploy",
 			uid:  "222-333-444",
-			want: &v1beta1.PlanStatus{
+			want: &kudoapi.PlanStatus{
 				Name:   "deploy",
-				Status: v1beta1.ExecutionPending,
+				Status: kudoapi.ExecutionPending,
 				UID:    "222-333-444",
 			},
 			wantErr: false,
@@ -456,16 +456,16 @@ func Test_resetPlanStatusIfPlanIsNew(t *testing.T) {
 
 func Test_ensurePlanStatusInitialized(t *testing.T) {
 
-	makeStatus := func(planName string, status v1beta1.ExecutionStatus, uid types.UID) v1beta1.PlanStatus {
-		return v1beta1.PlanStatus{
+	makeStatus := func(planName string, status kudoapi.ExecutionStatus, uid types.UID) kudoapi.PlanStatus {
+		return kudoapi.PlanStatus{
 			Name:   planName,
 			Status: status,
 			UID:    uid,
-			Phases: []v1beta1.PhaseStatus{
+			Phases: []kudoapi.PhaseStatus{
 				{
 					Name:   "phase",
 					Status: status,
-					Steps: []v1beta1.StepStatus{
+					Steps: []kudoapi.StepStatus{
 						{
 							Name:   "step",
 							Status: status,
@@ -476,28 +476,28 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 		}
 	}
 
-	deployStatus := makeStatus("deploy", v1beta1.ExecutionNeverRun, "")
-	oldStatus := makeStatus("old", v1beta1.ExecutionComplete, "222-333-444")
-	backupStatus := makeStatus("backup", v1beta1.ExecutionNeverRun, "")
-	backupCompleteStatus := makeStatus("backup", v1beta1.ExecutionComplete, "111-222-333")
+	deployStatus := makeStatus("deploy", kudoapi.ExecutionNeverRun, "")
+	oldStatus := makeStatus("old", kudoapi.ExecutionComplete, "222-333-444")
+	backupStatus := makeStatus("backup", kudoapi.ExecutionNeverRun, "")
+	backupCompleteStatus := makeStatus("backup", kudoapi.ExecutionComplete, "111-222-333")
 
-	instance := &v1beta1.Instance{
+	instance := &kudoapi.Instance{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
-		Spec:       v1beta1.InstanceSpec{},
-		Status:     v1beta1.InstanceStatus{},
+		Spec:       kudoapi.InstanceSpec{},
+		Status:     kudoapi.InstanceStatus{},
 	}
 
-	ov := &v1beta1.OperatorVersion{
+	ov := &kudoapi.OperatorVersion{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo-operator", Namespace: "default"},
 		TypeMeta:   metav1.TypeMeta{Kind: "OperatorVersion", APIVersion: "kudo.dev/v1beta1"},
-		Spec: v1beta1.OperatorVersionSpec{
-			Plans: map[string]v1beta1.Plan{
+		Spec: kudoapi.OperatorVersionSpec{
+			Plans: map[string]kudoapi.Plan{
 				"deploy": {
-					Phases: []v1beta1.Phase{
+					Phases: []kudoapi.Phase{
 						{
 							Name: "phase",
-							Steps: []v1beta1.Step{
+							Steps: []kudoapi.Step{
 								{
 									Name:  "step",
 									Tasks: []string{},
@@ -507,10 +507,10 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 					},
 				},
 				"backup": {
-					Phases: []v1beta1.Phase{
+					Phases: []kudoapi.Phase{
 						{
 							Name: "phase",
-							Steps: []v1beta1.Step{
+							Steps: []kudoapi.Step{
 								{
 									Name:  "step",
 									Tasks: []string{},
@@ -525,16 +525,16 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 
 	tests := []struct {
 		name string
-		i    *v1beta1.Instance
-		ov   *v1beta1.OperatorVersion
-		want v1beta1.InstanceStatus
+		i    *kudoapi.Instance
+		ov   *kudoapi.OperatorVersion
+		want kudoapi.InstanceStatus
 	}{
 		{
 			name: "missing plan status IS updated",
 			i:    instance.DeepCopy(),
 			ov:   ov,
-			want: v1beta1.InstanceStatus{
-				PlanStatus: map[string]v1beta1.PlanStatus{
+			want: kudoapi.InstanceStatus{
+				PlanStatus: map[string]kudoapi.PlanStatus{
 					"deploy": deployStatus,
 					"backup": backupStatus,
 				},
@@ -542,16 +542,16 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 		},
 		{
 			name: "an existing plan status is NOT updated",
-			i: func() *v1beta1.Instance {
+			i: func() *kudoapi.Instance {
 				i := instance.DeepCopy()
-				i.Status = v1beta1.InstanceStatus{
-					PlanStatus: map[string]v1beta1.PlanStatus{"backup": backupCompleteStatus},
+				i.Status = kudoapi.InstanceStatus{
+					PlanStatus: map[string]kudoapi.PlanStatus{"backup": backupCompleteStatus},
 				}
 				return i
 			}(),
 			ov: ov,
-			want: v1beta1.InstanceStatus{
-				PlanStatus: map[string]v1beta1.PlanStatus{
+			want: kudoapi.InstanceStatus{
+				PlanStatus: map[string]kudoapi.PlanStatus{
 					"deploy": deployStatus,
 					"backup": backupCompleteStatus,
 				},
@@ -559,16 +559,16 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 		},
 		{
 			name: "an existing but outdated (missing in OV) plan status is NOT modified",
-			i: func() *v1beta1.Instance {
+			i: func() *kudoapi.Instance {
 				i := instance.DeepCopy()
-				i.Status = v1beta1.InstanceStatus{
-					PlanStatus: map[string]v1beta1.PlanStatus{"old": oldStatus},
+				i.Status = kudoapi.InstanceStatus{
+					PlanStatus: map[string]kudoapi.PlanStatus{"old": oldStatus},
 				}
 				return i
 			}(),
 			ov: ov,
-			want: v1beta1.InstanceStatus{
-				PlanStatus: map[string]v1beta1.PlanStatus{
+			want: kudoapi.InstanceStatus{
+				PlanStatus: map[string]kudoapi.PlanStatus{
 					"old":    oldStatus,
 					"deploy": deployStatus,
 					"backup": backupStatus,
@@ -592,48 +592,48 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 }
 
 func Test_retryReconciliation(t *testing.T) {
-	instance := &v1beta1.Instance{
+	instance := &kudoapi.Instance{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "kudo.dev/v1beta1", Kind: "Instance"},
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
-		Spec: v1beta1.InstanceSpec{
-			PlanExecution: v1beta1.PlanExecution{
-				Status: v1beta1.ExecutionComplete,
+		Spec: kudoapi.InstanceSpec{
+			PlanExecution: kudoapi.PlanExecution{
+				Status: kudoapi.ExecutionComplete,
 			},
 		},
-		Status: v1beta1.InstanceStatus{},
+		Status: kudoapi.InstanceStatus{},
 	}
 	timeNow := time.Now()
 	deployPlanName := "deploy"
 
 	tests := []struct {
 		name string
-		i    *v1beta1.Instance
+		i    *kudoapi.Instance
 		want reconcile.Result
 	}{
 		{"finished plan", instance, reconcile.Result{}},
-		{"just started plan", func() *v1beta1.Instance {
+		{"just started plan", func() *kudoapi.Instance {
 			i := instance.DeepCopy()
-			i.Spec.PlanExecution.Status = v1beta1.ExecutionInProgress
+			i.Spec.PlanExecution.Status = kudoapi.ExecutionInProgress
 			i.Spec.PlanExecution.PlanName = deployPlanName
-			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
+			i.Status.PlanStatus = map[string]kudoapi.PlanStatus{
 				deployPlanName: {LastUpdatedTimestamp: &metav1.Time{Time: timeNow}},
 			}
 			return i
 		}(), reconcile.Result{Requeue: true, RequeueAfter: 1 * time.Second}},
-		{"2 minutes old update", func() *v1beta1.Instance {
+		{"2 minutes old update", func() *kudoapi.Instance {
 			i := instance.DeepCopy()
-			i.Spec.PlanExecution.Status = v1beta1.ExecutionInProgress
+			i.Spec.PlanExecution.Status = kudoapi.ExecutionInProgress
 			i.Spec.PlanExecution.PlanName = deployPlanName
-			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
+			i.Status.PlanStatus = map[string]kudoapi.PlanStatus{
 				deployPlanName: {LastUpdatedTimestamp: &metav1.Time{Time: timeNow.Add(-2 * time.Minute)}},
 			}
 			return i
 		}(), reconcile.Result{Requeue: true, RequeueAfter: 3 * time.Second}},
-		{"long stalled plan", func() *v1beta1.Instance {
+		{"long stalled plan", func() *kudoapi.Instance {
 			i := instance.DeepCopy()
-			i.Spec.PlanExecution.Status = v1beta1.ExecutionInProgress
+			i.Spec.PlanExecution.Status = kudoapi.ExecutionInProgress
 			i.Spec.PlanExecution.PlanName = deployPlanName
-			i.Status.PlanStatus = map[string]v1beta1.PlanStatus{
+			i.Status.PlanStatus = map[string]kudoapi.PlanStatus{
 				deployPlanName: {LastUpdatedTimestamp: &metav1.Time{Time: timeNow.Add(-2 * time.Hour)}},
 			}
 			return i

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 
-	"github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/prompt"
 )
@@ -75,7 +75,7 @@ func validateAddMaintainerArg(args []string) error {
 func (pkg *packageAddMaintainerCmd) run(args []string) error {
 
 	if !pkg.interactive {
-		m := v1beta1.Maintainer{Name: args[0], Email: args[1]}
+		m := kudoapi.Maintainer{Name: args[0], Email: args[1]}
 		return generate.AddMaintainer(pkg.fs, pkg.path, &m)
 	}
 	// interactive mode

@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	updateDesc = `Update KUDO operator instance with new arguments. The update does not accept any arguments.
+	updateDesc = `Update KUDO operator instance with new parameters. The update of parameters can trigger the execution of specific plans.
 `
 	updateExample = `  # Update dev-flink instance with setting parameter param with value value
   kubectl kudo update --instance dev-flink -p param=value
