@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/spf13/afero"
+
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
@@ -35,15 +37,15 @@ func (b EntrySummaries) Less(x, y int) bool {
 }
 
 // Resolve returns a Package for a passed package name and optional version. This is an implementation
-// of the Resolver interface located in packages/resolver/resolver.go
-func (c *Client) Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error) {
+// of the DependenciesResolver interface located in packages/resolver/resolver.go
+func (c *Client) Resolve(out afero.Fs, name string, appVersion string, operatorVersion string) (*packages.Resources, error) {
 	buf, err := c.GetPackageBytes(name, appVersion, operatorVersion)
 	if err != nil {
 		return nil, err
 	}
 	clog.V(2).Printf("%v is a repository package from %v", name, c.Config)
 
-	files, err := reader.ParseTgz(buf)
+	files, err := reader.PackageFilesFromTar(out, buf)
 	if err != nil {
 		return nil, err
 	}

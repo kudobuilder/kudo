@@ -109,12 +109,12 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 		return fmt.Errorf("failed to resolve operator package for: %s: %w", packageToUpgrade, err)
 	}
 
-	pr.OperatorVersion.SetNamespace(settings.Namespace)
+	pr.Resources.OperatorVersion.SetNamespace(settings.Namespace)
 
-	dependencies, err := deps.Resolve(packageToUpgrade, pr.OperatorVersion, resolver)
+	dependencies, err := deps.Resolve(pr.OperatorDirectory, pr.Resources.OperatorVersion, pr.DependenciesResolver)
 	if err != nil {
 		return err
 	}
 
-	return upgrade.OperatorVersion(kc, pr.OperatorVersion, options.InstanceName, options.Parameters, dependencies)
+	return upgrade.OperatorVersion(kc, pr.Resources.OperatorVersion, options.InstanceName, options.Parameters, dependencies)
 }

@@ -163,7 +163,7 @@ func TestInClusterResolver_Resolve(t *testing.T) {
 					return
 				}
 
-				assert.Equal(t, got.OperatorVersion.Spec.Version, tt.wantOperatorVersion, "got: %v", got.OperatorVersion)
+				assert.Equal(t, got.Resources.OperatorVersion.Spec.Version, tt.wantOperatorVersion, "got: %v", got.Resources.OperatorVersion)
 			}
 		})
 	}

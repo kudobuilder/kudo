@@ -1,7 +1,9 @@
 package resolver
 
 import (
-	"path/filepath"
+	"strings"
+
+	"github.com/spf13/afero"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
@@ -10,32 +12,30 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
-// Resolver will try to resolve a given package name to either local tarball, folder, remote url or
-// an operator in the remote repository.
-type Resolver interface {
-	Resolve(name string, appVersion string, operatorVersion string) (*packages.Resources, error)
-}
-
 // PackageResolver is the source of resolver of operator packages.
 type PackageResolver struct {
-	local *LocalResolver
-	uri   *URLResolver
+	local *LocalHelper
+	uri   *URLHelper
 	repo  *repo.Client
 }
 
 // New creates an operator package resolver for non-repository packages
-func New(repo *repo.Client) Resolver {
-	lf := NewLocal()
-	uf := NewURL()
+func New(repo *repo.Client) packages.Resolver {
 	return &PackageResolver{
-		local: lf,
-		uri:   uf,
+		local: NewLocalHelper(),
+		uri:   NewURLHelper(),
 		repo:  repo,
 	}
 }
 
+func (m *PackageResolver) CopyWithFs(fs afero.Fs) packages.Resolver {
+	out := m
+	out.local = &LocalHelper{fs: fs}
+	return out
+}
+
 // NewInClusterResolver returns an initialized InClusterResolver for resolving already installed packages
-func NewInClusterResolver(c *kudo.Client, ns string) Resolver {
+func NewInClusterResolver(c *kudo.Client, ns string) packages.Resolver {
 	return &InClusterResolver{c: c, ns: ns}
 }
 
@@ -49,32 +49,62 @@ func NewInClusterResolver(c *kudo.Client, ns string) Resolver {
 // For local access there is a need to provide absolute or relative path as part of the name argument. `cassandra` without a path
 // component will resolve to the remote repo.  `./cassandra` will resolve to a folder which is expected to have the operator structure on the filesystem.
 // `../folder/cassandra.tgz` will resolve to the cassandra package tarball on the filesystem.
-func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (p *packages.Resources, err error) {
+func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.FancyResources, error) {
 
-	// Local files/folder have priority
-	_, err = m.local.fs.Stat(name)
-	// force local operators usage to be either absolute or express a relative path
-	// or put another way, a name can NOT be mistaken to be the name of a local folder
-	if filepath.Base(name) != name && err == nil {
-		var abs string
-		abs, err = filepath.Abs(name)
-		if err != nil {
-			return nil, err
-		}
+	clog.V(1).Printf("determining package type of %v", name)
+
+	// 1. local files/folder have priority
+	abs, err := m.local.LocalPackagePath(name)
+	if err == nil {
 		clog.V(2).Printf("local operator discovered: %v", abs)
-		p, err = m.local.Resolve(name, appVersion, operatorVersion)
-		return
+
+		var res *packages.Resources
+		if strings.HasSuffix(abs, ".tgz") {
+			out := afero.NewMemMapFs()
+			res, err = m.local.ResolveTar(out, abs)
+			if err == nil {
+				return &packages.FancyResources{
+					Resources:            res,
+					DependenciesResolver: m.CopyWithFs(out),
+					OperatorDirectory:    "/"}, nil
+			}
+		} else {
+			res, err = m.local.ResolveDir(abs)
+			if err == nil {
+				return &packages.FancyResources{
+					Resources:            res,
+					DependenciesResolver: m,
+					OperatorDirectory:    abs}, nil
+			}
+		}
+
+		return nil, err
 	}
 
+	// 2. next are tarball URLs
 	clog.V(3).Printf("no local operator discovered, looking for http")
 	if http.IsValidURL(name) {
 		clog.V(3).Printf("operator using http protocol for %v", name)
-		p, err = m.uri.Resolve(name, appVersion, operatorVersion)
-		return
+		out := afero.NewMemMapFs()
+		res, err := m.uri.Resolve(out, name)
+		if err == nil {
+			return &packages.FancyResources{
+				Resources:            res,
+				DependenciesResolver: m.CopyWithFs(out),
+				OperatorDirectory:    "/"}, nil
+		}
+		return nil, err
 	}
 
+	// 3. try the repo as the last
 	clog.V(3).Printf("no http discovered, looking for repository")
-	p, err = m.repo.Resolve(name, appVersion, operatorVersion)
-
-	return
+	out := afero.NewMemMapFs()
+	res, err := m.repo.Resolve(out, name, appVersion, operatorVersion)
+	if err == nil {
+		return &packages.FancyResources{
+			Resources:            res,
+			DependenciesResolver: m.CopyWithFs(out),
+			OperatorDirectory:    "/"}, nil
+	}
+	return nil, err
 }

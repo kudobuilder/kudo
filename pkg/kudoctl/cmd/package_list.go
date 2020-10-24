@@ -27,19 +27,19 @@ For list commands, the argument passed represents an operator.   That representa
 `
 
 const packageListExamples = `  # show list of parameters from local operator folder   
-  kubectl kudo package list parameters local-folder
+  kubectl kudo package list parameters ./local-folder
 
   # show list of parameters from zookeeper (where zookeeper is name of package in KUDO repository)
   kubectl kudo package list parameters zookeeper
 
   # show list of tasks from local operator folder
-  kubectl kudo package list tasks local-folder
+  kubectl kudo package list tasks ./local-folder
 
   # show list of tasks from zookeeper (where zookeeper is name of package in KUDO repository)
   kubectl kudo package list tasks zookeeper
 
   # show list of plans from local operator folder
-  kubectl kudo package list plans local-folder
+  kubectl kudo package list plans ./local-folder
 
   # show plans from zookeeper (where zookeeper is name of package in KUDO repository)
   kubectl kudo package list plans zookeeper
@@ -74,5 +74,5 @@ func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, pathOrName,
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve package files for operator: %s: %w", pathOrName, err)
 	}
-	return pr, nil
+	return pr.Resources, nil
 }

@@ -8,7 +8,7 @@ import (
 
 func TestManager_GetPackage(t *testing.T) {
 	m := &PackageResolver{
-		local: NewLocal(),
+		local: NewLocalHelper(),
 		uri:   nil,
 	}
 	pr, err := m.Resolve("../testdata/zk", "", "")
@@ -17,5 +17,5 @@ func TestManager_GetPackage(t *testing.T) {
 		return
 	}
 
-	assert.EqualValues(t, "zookeeper", pr.Operator.Name)
+	assert.EqualValues(t, "zookeeper", pr.Resources.Operator.Name)
 }
