@@ -21,6 +21,13 @@ type InClusterResolver struct {
 	ns string
 }
 
+func NewInClusterResolver(client client.Client, ns string) *InClusterResolver {
+	return &InClusterResolver{
+		c:  client,
+		ns: ns,
+	}
+}
+
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.PackageScope, error) {
 	ovn := kudoapi.OperatorVersionName(name, appVersion, operatorVersion)
 

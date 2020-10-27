@@ -18,8 +18,8 @@ type URLHelper struct {
 	client http.Client
 }
 
-// Resolve returns a package for the provided url
-func (f *URLHelper) Resolve(out afero.Fs, url string) (*packages.Resources, error) {
+// ResolveURL returns a package for the provided url
+func (f *URLHelper) ResolveURL(out afero.Fs, url string) (*packages.Resources, error) {
 	// check to see if url is url
 	if !http.IsValidURL(url) {
 		return nil, fmt.Errorf("resolver: url %v invalid", url)

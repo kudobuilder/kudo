@@ -88,7 +88,7 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 	if http.IsValidURL(name) {
 		clog.V(3).Printf("operator using http protocol for %v", name)
 		out := afero.NewMemMapFs()
-		res, err := m.uri.Resolve(out, name)
+		res, err := m.uri.ResolveURL(out, name)
 		if err == nil {
 			return &packages.PackageScope{
 				Resources:            res,
