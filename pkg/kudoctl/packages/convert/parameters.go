@@ -20,6 +20,7 @@ func ParameterGroupsToPackageType(groups []kudoapi.ParameterGroup) packages.Grou
 			Name:        group.Name,
 			DisplayName: group.DisplayName,
 			Description: group.Description,
+			Priority:    group.Priority,
 		})
 	}
 
@@ -37,6 +38,7 @@ func ParameterGroupsToCRDType(groups packages.Groups) []kudoapi.ParameterGroup {
 			Name:        group.Name,
 			DisplayName: group.DisplayName,
 			Description: group.Description,
+			Priority:    group.Priority,
 		})
 	}
 
