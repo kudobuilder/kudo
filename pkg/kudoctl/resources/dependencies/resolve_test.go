@@ -2,6 +2,7 @@ package dependencies
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -223,7 +224,7 @@ func TestResolve(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := nameResolver{tt.prs}
-			got, err := Resolve("", tt.prs[0].OperatorVersion, resolver)
+			got, err := Resolve(tt.prs[0].OperatorVersion, resolver)
 
 			assert.Equal(t, err == nil, tt.wantErr == "")
 
@@ -250,7 +251,9 @@ func TestResolveLocalDependencies(t *testing.T) {
 		{path: "./testdata/operator-with-dependencies.tgz"},
 	}
 
-	var resolver = pkgresolver.NewPackageResolver(nil)
+	wd, _ := os.Getwd()
+
+	var resolver = pkgresolver.NewPackageResolver(nil, wd)
 
 	for _, tt := range tests {
 		tt := tt
@@ -259,7 +262,7 @@ func TestResolveLocalDependencies(t *testing.T) {
 			assert.NoError(t, err, "failed to resolve operator package for %s", tt.path)
 			assert.NotNil(t, pr, "failed to resolve operator %s", tt.path)
 
-			dependencies, err := Resolve(pr.OperatorDirectory, pr.Resources.OperatorVersion, pr.DependenciesResolver)
+			dependencies, err := Resolve(pr.Resources.OperatorVersion, pr.DependenciesResolver)
 			assert.Equal(t, "child", pr.Resources.OperatorVersion.Spec.Tasks[0].Spec.KudoOperatorTaskSpec.Package, "expecting the KudoOperatorTask to have resolved child operator name")
 			assert.Equal(t, "0.0.1", pr.Resources.OperatorVersion.Spec.Tasks[0].Spec.KudoOperatorTaskSpec.OperatorVersion, "expecting the KudoOperatorTask to have resolved child operator version")
 			assert.Equal(t, "3.2.1", pr.Resources.OperatorVersion.Spec.Tasks[0].Spec.KudoOperatorTaskSpec.AppVersion, "expecting the KudoOperatorTask to have resolved child operator app version")

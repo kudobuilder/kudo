@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -69,7 +70,12 @@ func packageDiscovery(fs afero.Fs, settings *env.Settings, repoName, pathOrName,
 	clog.V(3).Printf("repository used %s", repository)
 
 	clog.V(3).Printf("getting package pkg files for %v with version: %v_%v", pathOrName, appVersion, operatorVersion)
-	resolver := pkgresolver.NewPackageResolver(repository)
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current working directory: %v", err)
+	}
+
+	resolver := pkgresolver.NewPackageResolver(repository, wd)
 	pr, err := resolver.Resolve(pathOrName, appVersion, operatorVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve package files for operator: %s: %w", pathOrName, err)

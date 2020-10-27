@@ -23,7 +23,6 @@ type Resolver interface {
 type PackageScope struct {
 	Resources            *Resources
 	DependenciesResolver Resolver
-	OperatorDirectory    string
 }
 
 // Resources is collection of CRDs that are used when installing operator

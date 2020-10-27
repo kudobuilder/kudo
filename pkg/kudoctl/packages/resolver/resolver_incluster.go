@@ -15,6 +15,11 @@ type InClusterResolver struct {
 	ns string
 }
 
+// NewInClusterResolver returns an initialized InClusterResolver for resolving already installed packages
+func NewInClusterResolver(c *kudo.Client, ns string) packages.Resolver {
+	return &InClusterResolver{c: c, ns: ns}
+}
+
 func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.PackageScope, error) {
 	// Fetch all OVs
 	ovList, err := r.c.ListOperatorVersions(r.ns)

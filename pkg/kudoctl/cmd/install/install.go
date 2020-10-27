@@ -2,6 +2,7 @@ package install
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/afero"
@@ -85,7 +86,12 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	if options.InCluster {
 		resolver = pkgresolver.NewInClusterResolver(kudoClient, settings.Namespace)
 	} else {
-		resolver = pkgresolver.NewPackageResolver(repoClient)
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current working directory: %v", err)
+		}
+
+		resolver = pkgresolver.NewPackageResolver(repoClient, wd)
 	}
 
 	pr, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)
@@ -93,7 +99,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
-	dependencies, err := deps.Resolve(pr.OperatorDirectory, pr.Resources.OperatorVersion, pr.DependenciesResolver)
+	dependencies, err := deps.Resolve(pr.Resources.OperatorVersion, pr.DependenciesResolver)
 	if err != nil {
 		return err
 	}

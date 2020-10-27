@@ -13,17 +13,16 @@ import (
 
 // LocalHelper will find local operator packages: folders or tgz
 type LocalHelper struct {
-	fs afero.Fs
+	fs        afero.Fs
+	directory string
 }
 
-// NewLocalHelper creates a resolver for local operator package
-func NewLocalHelper() *LocalHelper {
-	return &LocalHelper{fs: afero.NewOsFs()}
-}
-
-// NewLocalHelper creates a resolver for local operator package
-func NewForFilesystem(fs afero.Fs) *LocalHelper {
-	return &LocalHelper{fs: fs}
+// newForFilesystem creates a resolver with an fs and a working directory
+func newForFilesystem(fs afero.Fs, dir string) *LocalHelper {
+	return &LocalHelper{
+		fs:        fs,
+		directory: dir,
+	}
 }
 
 func (f *LocalHelper) LocalPackagePath(path string) (string, error) {

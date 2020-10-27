@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/afero"
@@ -8,7 +9,6 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/http"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/repo"
 )
 
@@ -20,23 +20,28 @@ type PackageResolver struct {
 }
 
 // NewPackageResolver creates an operator package resolver for non-repository packages
-func NewPackageResolver(repo *repo.Client) packages.Resolver {
+func NewPackageResolver(repo *repo.Client, workingDir string) packages.Resolver {
 	return &PackageResolver{
-		local: NewLocalHelper(),
+		local: newForFilesystem(afero.NewOsFs(), workingDir),
 		uri:   NewURLHelper(),
 		repo:  repo,
 	}
 }
 
-func (m *PackageResolver) copyWithFs(fs afero.Fs) packages.Resolver {
-	out := m
-	out.local = NewForFilesystem(fs)
-	return out
+func (m *PackageResolver) copyWithChangedWorkingDir(workingDir string) packages.Resolver {
+	return &PackageResolver{
+		local: newForFilesystem(m.local.fs, workingDir),
+		uri:   m.uri,
+		repo:  m.repo,
+	}
 }
 
-// NewInClusterResolver returns an initialized InClusterResolver for resolving already installed packages
-func NewInClusterResolver(c *kudo.Client, ns string) packages.Resolver {
-	return &InClusterResolver{c: c, ns: ns}
+func (m *PackageResolver) copyWithChangedFs(fs afero.Fs) packages.Resolver {
+	return &PackageResolver{
+		local: newForFilesystem(fs, "/"),
+		uri:   m.uri,
+		repo:  m.repo,
+	}
 }
 
 // Resolve provides a one stop to acquire any non-repo packages by trying to look for package files
@@ -50,6 +55,14 @@ func NewInClusterResolver(c *kudo.Client, ns string) packages.Resolver {
 // component will resolve to the remote repo.  `./cassandra` will resolve to a folder which is expected to have the operator structure on the filesystem.
 // `../folder/cassandra.tgz` will resolve to the cassandra package tarball on the filesystem.
 func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.PackageScope, error) {
+
+	// if the path to a child dependency is a relative one, we construct the absolute path for the
+	// resolver by combining the absolute path for the operator directory with the relative dependency path
+	// a relative dependency path must begin with either './' or '../'
+	isRelativePackage := strings.HasPrefix(name, "./") || strings.HasPrefix(name, "../")
+	if isRelativePackage {
+		name = filepath.Join(m.local.directory, name)
+	}
 
 	clog.V(2).Printf("determining package type of %v", name)
 
@@ -67,16 +80,16 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 			if err == nil {
 				return &packages.PackageScope{
 					Resources:            res,
-					DependenciesResolver: m.copyWithFs(out),
-					OperatorDirectory:    "/"}, nil
+					DependenciesResolver: m.copyWithChangedFs(out),
+				}, nil
 			}
 		} else {
 			res, err = m.local.ResolveDir(abs)
 			if err == nil {
 				return &packages.PackageScope{
 					Resources:            res,
-					DependenciesResolver: m,
-					OperatorDirectory:    abs}, nil
+					DependenciesResolver: m.copyWithChangedWorkingDir(abs),
+				}, nil
 			}
 		}
 
@@ -92,8 +105,8 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 		if err == nil {
 			return &packages.PackageScope{
 				Resources:            res,
-				DependenciesResolver: m.copyWithFs(out),
-				OperatorDirectory:    "/"}, nil
+				DependenciesResolver: m.copyWithChangedFs(out),
+			}, nil
 		}
 		return nil, err
 	}
@@ -105,8 +118,8 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 	if err == nil {
 		return &packages.PackageScope{
 			Resources:            res,
-			DependenciesResolver: m.copyWithFs(out),
-			OperatorDirectory:    "/"}, nil
+			DependenciesResolver: m.copyWithChangedFs(out),
+		}, nil
 	}
 	return nil, err
 }

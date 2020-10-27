@@ -2,8 +2,6 @@ package dependencies
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	"github.com/thoas/go-funk"
 	"github.com/yourbasic/graph"
@@ -54,7 +52,7 @@ type Dependency struct {
 // operator in a directory. In that case all its relative dependencies (if any exist) will be relative
 // to the operator directory (the one with `operator.yaml` file).
 // See github.com/kudobuilder/kudo/issues/1701 for additional context.
-func Resolve(operatorDir string, operatorVersion *kudoapi.OperatorVersion, resolver packages.Resolver) ([]Dependency, error) {
+func Resolve(operatorVersion *kudoapi.OperatorVersion, resolver packages.Resolver) ([]Dependency, error) {
 	root := packages.Resources{
 		OperatorVersion: operatorVersion,
 	}
@@ -68,7 +66,7 @@ func Resolve(operatorDir string, operatorVersion *kudoapi.OperatorVersion, resol
 		edges: []map[int]struct{}{{}},
 	}
 
-	if err := dependencyWalk(&dependencies, &g, &root, 0, resolver, operatorDir); err != nil {
+	if err := dependencyWalk(&dependencies, &g, &root, 0, resolver); err != nil {
 		return nil, err
 	}
 
@@ -81,8 +79,7 @@ func dependencyWalk(
 	g *dependencyGraph,
 	parent *packages.Resources,
 	parentIndex int,
-	resolver packages.Resolver,
-	operatorDirectory string) error {
+	resolver packages.Resolver) error {
 	//nolint:errcheck
 	childrenTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task kudoapi.Task) bool {
 		return task.Kind == engtask.KudoOperatorTaskKind
@@ -90,14 +87,6 @@ func dependencyWalk(
 
 	for _, childTask := range childrenTasks {
 		childPackageName := childTask.Spec.KudoOperatorTaskSpec.Package
-
-		// if the path to a child dependency is a relative one, we construct the absolute path for the
-		// resolver by combining the absolute path for the operator directory with the relative dependency path
-		// a relative dependency path must begin with either './' or '../'
-		isRelativePackage := strings.HasPrefix(childPackageName, "./") || strings.HasPrefix(childPackageName, "../")
-		if isRelativePackage {
-			childPackageName = filepath.Join(operatorDirectory, childPackageName)
-		}
 
 		childResolved, err := resolver.Resolve(
 			childPackageName,
@@ -163,7 +152,7 @@ func dependencyWalk(
 
 		// We only need to walk the dependencies if the package is new
 		if newPackage {
-			if err := dependencyWalk(dependencies, g, childResolved.Resources, childIndex, childResolved.DependenciesResolver, childResolved.OperatorDirectory); err != nil {
+			if err := dependencyWalk(dependencies, g, childResolved.Resources, childIndex, childResolved.DependenciesResolver); err != nil {
 				return err
 			}
 		}
