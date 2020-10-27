@@ -22,13 +22,13 @@ type nameResolver struct {
 func (resolver nameResolver) Resolve(
 	name string,
 	appVersion string,
-	operatorVersion string) (*packages.FancyResources, error) {
+	operatorVersion string) (*packages.PackageScope, error) {
 	for _, pr := range resolver.Prs {
 		pr := pr
 		if pr.Operator.Name == name &&
 			(operatorVersion == "" || pr.OperatorVersionString() == operatorVersion) &&
 			(appVersion == "" || pr.AppVersionString() == appVersion) {
-			return &packages.FancyResources{Resources: &pr, DependenciesResolver: resolver}, nil
+			return &packages.PackageScope{Resources: &pr, DependenciesResolver: resolver}, nil
 		}
 	}
 
@@ -250,7 +250,7 @@ func TestResolveLocalDependencies(t *testing.T) {
 		{path: "./testdata/operator-with-dependencies.tgz"},
 	}
 
-	var resolver = pkgresolver.New(nil)
+	var resolver = pkgresolver.NewPackageResolver(nil)
 
 	for _, tt := range tests {
 		tt := tt

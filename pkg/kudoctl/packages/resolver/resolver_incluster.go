@@ -15,7 +15,7 @@ type InClusterResolver struct {
 	ns string
 }
 
-func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.FancyResources, error) {
+func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.PackageScope, error) {
 	// Fetch all OVs
 	ovList, err := r.c.ListOperatorVersions(r.ns)
 	if err != nil {
@@ -53,5 +53,5 @@ func (r InClusterResolver) Resolve(name string, appVersion string, operatorVersi
 		Instance:        convert.BuildInstanceResource(name, operatorVersion, appVersion),
 	}
 
-	return &packages.FancyResources{Resources: res, DependenciesResolver: r}, nil
+	return &packages.PackageScope{Resources: res, DependenciesResolver: r}, nil
 }

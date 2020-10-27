@@ -98,6 +98,7 @@ func ExtractTar(out afero.Fs, r io.Reader) error {
 
 		// there are no folders in the tar, only files with nested file names e.g. `templates/foo.yaml` ¯\_(ツ)_/¯
 		case tar.TypeDir:
+			clog.Printf("Tar file contained directory. Did not expect this: %s", header.Name)
 			continue
 
 		case tar.TypeReg:

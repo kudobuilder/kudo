@@ -103,7 +103,7 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 		return fmt.Errorf("could not build operator repository: %w", err)
 	}
 
-	resolver := pkgresolver.New(repository)
+	resolver := pkgresolver.NewPackageResolver(repository)
 	pr, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve operator package for: %s: %w", packageToUpgrade, err)

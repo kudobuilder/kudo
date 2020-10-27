@@ -19,8 +19,8 @@ type PackageResolver struct {
 	repo  *repo.Client
 }
 
-// New creates an operator package resolver for non-repository packages
-func New(repo *repo.Client) packages.Resolver {
+// NewPackageResolver creates an operator package resolver for non-repository packages
+func NewPackageResolver(repo *repo.Client) packages.Resolver {
 	return &PackageResolver{
 		local: NewLocalHelper(),
 		uri:   NewURLHelper(),
@@ -28,9 +28,9 @@ func New(repo *repo.Client) packages.Resolver {
 	}
 }
 
-func (m *PackageResolver) CopyWithFs(fs afero.Fs) packages.Resolver {
+func (m *PackageResolver) copyWithFs(fs afero.Fs) packages.Resolver {
 	out := m
-	out.local = &LocalHelper{fs: fs}
+	out.local = NewForFilesystem(fs)
 	return out
 }
 
@@ -49,12 +49,14 @@ func NewInClusterResolver(c *kudo.Client, ns string) packages.Resolver {
 // For local access there is a need to provide absolute or relative path as part of the name argument. `cassandra` without a path
 // component will resolve to the remote repo.  `./cassandra` will resolve to a folder which is expected to have the operator structure on the filesystem.
 // `../folder/cassandra.tgz` will resolve to the cassandra package tarball on the filesystem.
-func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.FancyResources, error) {
+func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersion string) (*packages.PackageScope, error) {
 
-	clog.V(1).Printf("determining package type of %v", name)
+	clog.V(2).Printf("determining package type of %v", name)
 
 	// 1. local files/folder have priority
 	abs, err := m.local.LocalPackagePath(name)
+
+	// LocalPackagePath returns an error if name isn't a local file/folder and does not indicate other errors
 	if err == nil {
 		clog.V(2).Printf("local operator discovered: %v", abs)
 
@@ -63,15 +65,15 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 			out := afero.NewMemMapFs()
 			res, err = m.local.ResolveTar(out, abs)
 			if err == nil {
-				return &packages.FancyResources{
+				return &packages.PackageScope{
 					Resources:            res,
-					DependenciesResolver: m.CopyWithFs(out),
+					DependenciesResolver: m.copyWithFs(out),
 					OperatorDirectory:    "/"}, nil
 			}
 		} else {
 			res, err = m.local.ResolveDir(abs)
 			if err == nil {
-				return &packages.FancyResources{
+				return &packages.PackageScope{
 					Resources:            res,
 					DependenciesResolver: m,
 					OperatorDirectory:    abs}, nil
@@ -88,9 +90,9 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 		out := afero.NewMemMapFs()
 		res, err := m.uri.Resolve(out, name)
 		if err == nil {
-			return &packages.FancyResources{
+			return &packages.PackageScope{
 				Resources:            res,
-				DependenciesResolver: m.CopyWithFs(out),
+				DependenciesResolver: m.copyWithFs(out),
 				OperatorDirectory:    "/"}, nil
 		}
 		return nil, err
@@ -101,9 +103,9 @@ func (m *PackageResolver) Resolve(name string, appVersion string, operatorVersio
 	out := afero.NewMemMapFs()
 	res, err := m.repo.Resolve(out, name, appVersion, operatorVersion)
 	if err == nil {
-		return &packages.FancyResources{
+		return &packages.PackageScope{
 			Resources:            res,
-			DependenciesResolver: m.CopyWithFs(out),
+			DependenciesResolver: m.copyWithFs(out),
 			OperatorDirectory:    "/"}, nil
 	}
 	return nil, err

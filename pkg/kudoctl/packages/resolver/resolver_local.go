@@ -16,6 +16,16 @@ type LocalHelper struct {
 	fs afero.Fs
 }
 
+// NewLocalHelper creates a resolver for local operator package
+func NewLocalHelper() *LocalHelper {
+	return &LocalHelper{fs: afero.NewOsFs()}
+}
+
+// NewLocalHelper creates a resolver for local operator package
+func NewForFilesystem(fs afero.Fs) *LocalHelper {
+	return &LocalHelper{fs: fs}
+}
+
 func (f *LocalHelper) LocalPackagePath(path string) (string, error) {
 	fi, err := f.fs.Stat(path)
 
@@ -51,9 +61,4 @@ func (f *LocalHelper) ResolveDir(path string) (*packages.Resources, error) {
 		return reader.ResourcesFromDir(f.fs, path)
 	}
 	return nil, fmt.Errorf("unsupported file system format %v. Expect a folder", abs)
-}
-
-// NewLocalHelper creates a resolver for local operator package
-func NewLocalHelper() *LocalHelper {
-	return &LocalHelper{fs: afero.NewOsFs()}
 }

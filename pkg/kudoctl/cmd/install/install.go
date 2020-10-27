@@ -85,7 +85,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 	if options.InCluster {
 		resolver = pkgresolver.NewInClusterResolver(kudoClient, settings.Namespace)
 	} else {
-		resolver = pkgresolver.New(repoClient)
+		resolver = pkgresolver.NewPackageResolver(repoClient)
 	}
 
 	pr, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)

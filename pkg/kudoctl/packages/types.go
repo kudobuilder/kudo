@@ -13,14 +13,14 @@ const (
 // Resolver will try to resolve a given package name to either local tarball, folder, remote url or
 // an operator in the remote repository.
 type Resolver interface {
-	Resolve(name string, appVersion string, operatorVersion string) (*FancyResources, error)
+	Resolve(name string, appVersion string, operatorVersion string) (*PackageScope, error)
 }
 
-// FancyResources (naming is hard :=) type provides operator resources together with a "scope-aware" dependency resolver.
+// PackageScope type provides operator resources together with a "scope-aware" dependency resolver.
 // For example, a dependency like `./child-operator` in an local directory needs the host system to be resolved, but when
 // found in a tarball, it needs the contents of the tarball because the dependency is not allowed to "escape" into the
 // host system.
-type FancyResources struct {
+type PackageScope struct {
 	Resources            *Resources
 	DependenciesResolver Resolver
 	OperatorDirectory    string
