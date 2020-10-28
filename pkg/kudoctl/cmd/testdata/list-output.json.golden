@@ -1,0 +1,101 @@
+{
+  "apiVersion": "kudo.dev/v1beta1",
+  "groups": [
+    {
+      "name": "general",
+      "description": "All the standard parameters",
+      "prio": 10
+    },
+    {
+      "name": "advanced",
+      "description": "Options that most users don't need to adjust",
+      "prio": 20
+    }
+  ],
+  "parameters": [
+    {
+      "displayName": "Node Count",
+      "name": "NODE_COUNT",
+      "description": "The number of Zookeeper nodes to create for the cluster. Should be an odd number of nodes and at least 3 to create a useful quorum.",
+      "required": true,
+      "default": 3,
+      "type": "integer",
+      "immutable": false,
+      "group": "general",
+      "hint": "Number of nodes."
+    },
+    {
+      "displayName": "CPU Request",
+      "name": "NODE_CPU_MC",
+      "description": "CPU request for the containers.",
+      "required": true,
+      "default": 1000,
+      "type": "integer",
+      "immutable": false,
+      "group": "general",
+      "hint": "Allowed CPU usage in millicores."
+    },
+    {
+      "displayName": "CPU Limit",
+      "name": "NODE_CPU_LIMIT_MC",
+      "description": "CPU limit for the containers.",
+      "required": true,
+      "default": 1000,
+      "type": "integer",
+      "immutable": false,
+      "group": "general",
+      "hint": "Temporary allowed CPU limit in millicores."
+    },
+    {
+      "displayName": "Memory Request",
+      "name": "NODE_MEM_MIB",
+      "description": "Memory request for the containers.",
+      "required": true,
+      "default": 4096,
+      "type": "integer",
+      "immutable": false,
+      "group": "general",
+      "hint": "Allowed Memory usage in MiB."
+    },
+    {
+      "displayName": "Memory Limit",
+      "name": "NODE_MEM_LIMIT_MIB",
+      "description": "Memory limit for the Cassandra node containers.",
+      "required": true,
+      "default": 4096,
+      "type": "integer",
+      "immutable": false,
+      "group": "general",
+      "hint": "Temporary allowed Memory limit in MiB."
+    },
+    {
+      "displayName": "Main Docker Image",
+      "name": "DOCKER_IMAGE",
+      "description": "Zookeeper Docker image.",
+      "required": true,
+      "default": "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10",
+      "type": "string",
+      "immutable": false,
+      "group": "advanced",
+      "advanced": true,
+      "hint": "Docker Image."
+    },
+    {
+      "displayName": "Main Docker Image Pull Policy",
+      "name": "DOCKER_IMAGE_PULL_POLICY",
+      "description": "Zookeeper Docker image pull policy.",
+      "required": true,
+      "default": "Always",
+      "type": "string",
+      "immutable": false,
+      "enum": [
+        "Always",
+        "IfNotPresent",
+        "Never"
+      ],
+      "group": "advanced",
+      "advanced": true,
+      "hint": "Pull policy."
+    }
+  ]
+}

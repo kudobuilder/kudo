@@ -1,0 +1,33 @@
+{
+  "title": "Parameters for Test",
+  "description": "All parameters for this operator",
+  "type": "object",
+  "properties": {
+    "my-param": {
+      "title": "MyParam",
+      "description": "My parameter description",
+      "default": "defaultVal",
+      "type": "string",
+      "immutable": true,
+      "hint": "My Param Hint.",
+      "trigger": "my-plan",
+      "listName": "my-param"
+    },
+    "simplegroup": {
+      "title": "SimpleGroup",
+      "description": "The description for this group.",
+      "priority": 10,
+      "type": "object",
+      "properties": {
+        "grouped-param": {
+          "title": "GroupedParam",
+          "description": "My parameter description in a group",
+          "default": "23",
+          "type": "integer",
+          "hint": "My Group Param Hint.",
+          "listName": "grouped-param"
+        }
+      }
+    }
+  }
+}

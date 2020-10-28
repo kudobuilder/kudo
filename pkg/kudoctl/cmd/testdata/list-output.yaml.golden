@@ -1,0 +1,79 @@
+apiVersion: kudo.dev/v1beta1
+groups:
+- description: All the standard parameters
+  name: general
+  prio: 10
+- description: Options that most users don't need to adjust
+  name: advanced
+  prio: 20
+parameters:
+- default: 3
+  description: The number of Zookeeper nodes to create for the cluster. Should be an odd number of nodes and at least 3 to create a useful quorum.
+  displayName: Node Count
+  group: general
+  hint: Number of nodes.
+  immutable: false
+  name: NODE_COUNT
+  required: true
+  type: integer
+- default: 1000
+  description: CPU request for the containers.
+  displayName: CPU Request
+  group: general
+  hint: Allowed CPU usage in millicores.
+  immutable: false
+  name: NODE_CPU_MC
+  required: true
+  type: integer
+- default: 1000
+  description: CPU limit for the containers.
+  displayName: CPU Limit
+  group: general
+  hint: Temporary allowed CPU limit in millicores.
+  immutable: false
+  name: NODE_CPU_LIMIT_MC
+  required: true
+  type: integer
+- default: 4096
+  description: Memory request for the containers.
+  displayName: Memory Request
+  group: general
+  hint: Allowed Memory usage in MiB.
+  immutable: false
+  name: NODE_MEM_MIB
+  required: true
+  type: integer
+- default: 4096
+  description: Memory limit for the Cassandra node containers.
+  displayName: Memory Limit
+  group: general
+  hint: Temporary allowed Memory limit in MiB.
+  immutable: false
+  name: NODE_MEM_LIMIT_MIB
+  required: true
+  type: integer
+- advanced: true
+  default: k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10
+  description: Zookeeper Docker image.
+  displayName: Main Docker Image
+  group: advanced
+  hint: Docker Image.
+  immutable: false
+  name: DOCKER_IMAGE
+  required: true
+  type: string
+- advanced: true
+  default: Always
+  description: Zookeeper Docker image pull policy.
+  displayName: Main Docker Image Pull Policy
+  enum:
+  - Always
+  - IfNotPresent
+  - Never
+  group: advanced
+  hint: Pull policy.
+  immutable: false
+  name: DOCKER_IMAGE_PULL_POLICY
+  required: true
+  type: string
+

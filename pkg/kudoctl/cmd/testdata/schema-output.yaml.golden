@@ -1,0 +1,81 @@
+description: All parameters for this operator
+properties:
+  advanced:
+    description: Options that most users don't need to adjust
+    priority: 20
+    properties:
+      DOCKER_IMAGE:
+        advanced: true
+        default: k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10
+        description: Zookeeper Docker image.
+        hint: Docker Image.
+        listName: DOCKER_IMAGE
+        title: Main Docker Image
+        type: string
+      DOCKER_IMAGE_PULL_POLICY:
+        advanced: true
+        default: Always
+        description: Zookeeper Docker image pull policy.
+        enum:
+        - Always
+        - IfNotPresent
+        - Never
+        hint: Pull policy.
+        listName: DOCKER_IMAGE_PULL_POLICY
+        title: Main Docker Image Pull Policy
+        type: string
+    required:
+    - DOCKER_IMAGE
+    - DOCKER_IMAGE_PULL_POLICY
+    title: advanced
+    type: object
+  general:
+    description: All the standard parameters
+    priority: 10
+    properties:
+      NODE_COUNT:
+        default: "3"
+        description: The number of Zookeeper nodes to create for the cluster. Should be an odd number of nodes and at least 3 to create a useful quorum.
+        hint: Number of nodes.
+        listName: NODE_COUNT
+        title: Node Count
+        type: integer
+      NODE_CPU_LIMIT_MC:
+        default: "1000"
+        description: CPU limit for the containers.
+        hint: Temporary allowed CPU limit in millicores.
+        listName: NODE_CPU_LIMIT_MC
+        title: CPU Limit
+        type: integer
+      NODE_CPU_MC:
+        default: "1000"
+        description: CPU request for the containers.
+        hint: Allowed CPU usage in millicores.
+        listName: NODE_CPU_MC
+        title: CPU Request
+        type: integer
+      NODE_MEM_LIMIT_MIB:
+        default: "4096"
+        description: Memory limit for the Cassandra node containers.
+        hint: Temporary allowed Memory limit in MiB.
+        listName: NODE_MEM_LIMIT_MIB
+        title: Memory Limit
+        type: integer
+      NODE_MEM_MIB:
+        default: "4096"
+        description: Memory request for the containers.
+        hint: Allowed Memory usage in MiB.
+        listName: NODE_MEM_MIB
+        title: Memory Request
+        type: integer
+    required:
+    - NODE_COUNT
+    - NODE_CPU_MC
+    - NODE_CPU_LIMIT_MC
+    - NODE_MEM_MIB
+    - NODE_MEM_LIMIT_MIB
+    title: general
+    type: object
+title: Parameters for zookeeper-3.4.10-0.1.0
+type: object
+

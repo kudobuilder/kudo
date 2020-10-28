@@ -1,0 +1,27 @@
+description: All parameters for this operator
+properties:
+  my-param:
+    default: defaultVal
+    description: My parameter description
+    hint: My Param Hint.
+    immutable: true
+    listName: my-param
+    title: MyParam
+    trigger: my-plan
+    type: string
+  simplegroup:
+    description: The description for this group.
+    priority: 10
+    properties:
+      grouped-param:
+        default: "23"
+        description: My parameter description in a group
+        hint: My Group Param Hint.
+        listName: grouped-param
+        title: GroupedParam
+        type: integer
+    title: SimpleGroup
+    type: object
+title: Parameters for Test
+type: object
+

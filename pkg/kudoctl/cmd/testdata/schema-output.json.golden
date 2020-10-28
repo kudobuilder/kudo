@@ -1,0 +1,97 @@
+{
+  "title": "Parameters for zookeeper-3.4.10-0.1.0",
+  "description": "All parameters for this operator",
+  "type": "object",
+  "properties": {
+    "advanced": {
+      "title": "advanced",
+      "description": "Options that most users don't need to adjust",
+      "priority": 20,
+      "type": "object",
+      "properties": {
+        "DOCKER_IMAGE": {
+          "title": "Main Docker Image",
+          "description": "Zookeeper Docker image.",
+          "default": "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10",
+          "type": "string",
+          "advanced": true,
+          "hint": "Docker Image.",
+          "listName": "DOCKER_IMAGE"
+        },
+        "DOCKER_IMAGE_PULL_POLICY": {
+          "title": "Main Docker Image Pull Policy",
+          "description": "Zookeeper Docker image pull policy.",
+          "default": "Always",
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ],
+          "type": "string",
+          "advanced": true,
+          "hint": "Pull policy.",
+          "listName": "DOCKER_IMAGE_PULL_POLICY"
+        }
+      },
+      "required": [
+        "DOCKER_IMAGE",
+        "DOCKER_IMAGE_PULL_POLICY"
+      ]
+    },
+    "general": {
+      "title": "general",
+      "description": "All the standard parameters",
+      "priority": 10,
+      "type": "object",
+      "properties": {
+        "NODE_COUNT": {
+          "title": "Node Count",
+          "description": "The number of Zookeeper nodes to create for the cluster. Should be an odd number of nodes and at least 3 to create a useful quorum.",
+          "default": "3",
+          "type": "integer",
+          "hint": "Number of nodes.",
+          "listName": "NODE_COUNT"
+        },
+        "NODE_CPU_LIMIT_MC": {
+          "title": "CPU Limit",
+          "description": "CPU limit for the containers.",
+          "default": "1000",
+          "type": "integer",
+          "hint": "Temporary allowed CPU limit in millicores.",
+          "listName": "NODE_CPU_LIMIT_MC"
+        },
+        "NODE_CPU_MC": {
+          "title": "CPU Request",
+          "description": "CPU request for the containers.",
+          "default": "1000",
+          "type": "integer",
+          "hint": "Allowed CPU usage in millicores.",
+          "listName": "NODE_CPU_MC"
+        },
+        "NODE_MEM_LIMIT_MIB": {
+          "title": "Memory Limit",
+          "description": "Memory limit for the Cassandra node containers.",
+          "default": "4096",
+          "type": "integer",
+          "hint": "Temporary allowed Memory limit in MiB.",
+          "listName": "NODE_MEM_LIMIT_MIB"
+        },
+        "NODE_MEM_MIB": {
+          "title": "Memory Request",
+          "description": "Memory request for the containers.",
+          "default": "4096",
+          "type": "integer",
+          "hint": "Allowed Memory usage in MiB.",
+          "listName": "NODE_MEM_MIB"
+        }
+      },
+      "required": [
+        "NODE_COUNT",
+        "NODE_CPU_MC",
+        "NODE_CPU_LIMIT_MC",
+        "NODE_MEM_MIB",
+        "NODE_MEM_LIMIT_MIB"
+      ]
+    }
+  }
+}
