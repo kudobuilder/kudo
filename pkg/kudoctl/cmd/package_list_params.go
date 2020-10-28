@@ -62,9 +62,7 @@ const (
 	TypeJSONSchemaYaml output.Type = "json-schema-yaml"
 )
 
-func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	list := &packageListParamsCmd{fs: fs, out: out}
-
+func newPackageListParamsCmd(list *packageListParamsCmd) *cobra.Command {
 	var outputStr string
 	cmd := &cobra.Command{
 		Use:     "parameters [operator]",

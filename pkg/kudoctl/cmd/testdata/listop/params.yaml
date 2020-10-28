@@ -1,0 +1,72 @@
+apiVersion: kudo.dev/v1beta1
+groups:
+  - name: general
+    title: "Main Parameters"
+    description: "All the standard parameters"
+    prio: 10
+  - name: advanced
+    title: "Advanced Configuration"
+    description: "Options that most users don't need to adjust"
+    prio: 20
+parameters:
+  - name: NODE_COUNT
+    description: "The number of Zookeeper nodes to create for the cluster. Should be an odd number of nodes and at least 3 to create a useful quorum."
+    default: "3"
+    displayName: "Node Count"
+    hint: "Number of nodes."
+    type: integer
+    group: general
+
+  - name: NODE_CPU_MC
+    displayName: "CPU Request"
+    hint: "Allowed CPU usage in millicores."
+    description: "CPU request for the containers."
+    type: integer
+    default: "1000"
+    group: general
+
+  - name: NODE_CPU_LIMIT_MC
+    displayName: "CPU Limit"
+    hint: "Temporary allowed CPU limit in millicores."
+    description: "CPU limit for the containers."
+    default: "1000"
+    type: integer
+    group: general
+
+  - name: NODE_MEM_MIB
+    displayName: "Memory Request"
+    description: "Memory request for the containers."
+    hint: "Allowed Memory usage in MiB."
+    default: "4096"
+    type: integer
+    group: general
+
+  - name: NODE_MEM_LIMIT_MIB
+    displayName: "Memory Limit"
+    description: "Memory limit for the Cassandra node containers."
+    hint: "Temporary allowed Memory limit in MiB."
+    default: "4096"
+    type: integer
+    group: general
+
+  - name: DOCKER_IMAGE
+    displayName: "Main Docker Image"
+    type: string
+    description: "Zookeeper Docker image."
+    hint: "Docker Image."
+    default: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
+    advanced: true
+    group: advanced
+
+  - name: DOCKER_IMAGE_PULL_POLICY
+    displayName: "Main Docker Image Pull Policy"
+    type: string
+    description: "Zookeeper Docker image pull policy."
+    hint: "Pull policy."
+    default: "Always"
+    advanced: true
+    group: advanced
+    enum:
+      - "Always"
+      - "IfNotPresent"
+      - "Never"

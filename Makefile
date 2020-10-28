@@ -177,6 +177,7 @@ ifeq (, $(shell which go-bindata))
 	go get github.com/go-bindata/go-bindata/v3/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata/v3)
 endif
 	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
+	go-bindata -pkg convert -o pkg/kudoctl/packages/convert/bindata.go -nometadata config/json-schema
 	./hack/update_codegen.sh
 
 .PHONY: generate-clean

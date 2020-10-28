@@ -6,13 +6,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/qri-io/jsonschema"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
+)
+
+const (
+	jsonSchemaTypeObject = "object"
+	jsonSchemaTypeString = "string"
 )
 
 type jsonSchema struct {
@@ -26,6 +30,7 @@ type jsonSchema struct {
 	Immutable   bool                   `json:"immutable,omitempty"`
 	Advanced    bool                   `json:"advanced,omitempty"`
 	Hint        string                 `json:"hint,omitempty"`
+	Trigger     string                 `json:"trigger,omitempty"`
 	ListName    string                 `json:"listName,omitempty"`
 	Properties  map[string]*jsonSchema `json:"properties,omitempty"`
 	Required    []string               `json:"required,omitempty"`
@@ -76,6 +81,8 @@ func buildTopLevelGroups(groups map[string]kudoapi.ParameterGroup) map[string]*j
 	for _, v := range groups {
 		g := newSchema()
 
+		g.Type = jsonSchemaTypeObject
+
 		if v.DisplayName != "" {
 			g.Title = v.DisplayName
 		} else {
@@ -106,11 +113,11 @@ func jsonSchemaTypeFromKudoType(parameterType kudoapi.ParameterType) string {
 
 	// Objects are the equivalent to maps
 	case kudoapi.MapValueType:
-		return "object"
+		return jsonSchemaTypeObject
 
 	// All other types are defined as strings
 	default:
-		return "string"
+		return jsonSchemaTypeString
 	}
 }
 
@@ -168,6 +175,9 @@ func buildParamSchema(p kudoapi.Parameter) (*jsonSchema, error) {
 	if p.Hint != "" {
 		param.Hint = p.Hint
 	}
+	if p.Trigger != "" {
+		param.Trigger = p.Trigger
+	}
 	param.ListName = p.Name
 	if p.IsEnum() {
 		if param.Enum, err = UnwrapEnumValues(p.EnumValues(), p.Type); err != nil {
@@ -183,7 +193,7 @@ func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io
 	topLevelGroups := buildTopLevelGroups(buildGroups(ov))
 
 	root.Properties = topLevelGroups
-	root.Type = "object"
+	root.Type = jsonSchemaTypeObject
 	root.Description = "All parameters for this operator"
 	root.Title = fmt.Sprintf("Parameters for %s", ov.Name)
 
@@ -218,13 +228,11 @@ func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io
 		return err
 	}
 
-	g, err := ioutil.ReadFile("pkg/kudoctl/packages/convert/fullschema.json")
-	if err != nil {
-		return fmt.Errorf("failed to read thingy: %v", err)
-	}
+	//schemaJSON := MustAsset("config/json-schema/full.json")
+	schemaJSON := MustAsset("config/json-schema/limited.json")
 
 	s := &jsonschema.Schema{}
-	if err := json.Unmarshal(g, s); err != nil {
+	if err := json.Unmarshal(schemaJSON, s); err != nil {
 		return fmt.Errorf("failed to unmarshal json-schema: %v", err)
 	}
 
@@ -239,6 +247,7 @@ func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io
 		for _, e := range errs {
 			fmt.Printf("Error: %v\n", e)
 		}
+		fmt.Printf("%s\n", buf.String())
 		return fmt.Errorf("failed to validate json schema")
 	}
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$recursiveAnchor": true,
-  "$id": "https://kudo.dev/json-schema",
+  "$id": "https://kudo.dev/json-schema-full",
   "title": "KUDO JSON-Schema",
   "type": ["object", "boolean"],
   "additionalProperties": false,
@@ -152,6 +152,9 @@
       "type": "string"
     },
     "listName": {
+      "type": "string"
+    },
+    "trigger": {
       "type": "string"
     },
     "immutable": {
