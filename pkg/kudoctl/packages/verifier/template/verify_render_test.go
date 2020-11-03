@@ -115,12 +115,12 @@ spec:
 
 func TestTemplateRenderVerifierParameterTypes(t *testing.T) {
 	params := []packages.Parameter{
-		packages.Parameter{
+		{
 			Name:    "labels",
 			Default: map[string]string{"a": "a", "b": "b"},
 			Type:    kudoapi.MapValueType,
 		},
-		packages.Parameter{
+		{
 			Name:    "containers",
 			Default: []string{"a", "b"},
 			Type:    kudoapi.ArrayValueType,
