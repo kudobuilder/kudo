@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.5.2
 	github.com/gosuri/uitable v0.0.4
 	github.com/huandu/xstrings v1.3.2 // indirect
-	github.com/kudobuilder/kuttl v0.7.1
+	github.com/kudobuilder/kuttl v0.7.2
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2 // indirect
