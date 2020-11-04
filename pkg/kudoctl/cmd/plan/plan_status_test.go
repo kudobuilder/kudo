@@ -38,10 +38,10 @@ func TestStatus(t *testing.T) {
 			Plans: map[string]kudoapi.Plan{
 				"zzzinvalid": {
 					Phases: []kudoapi.Phase{
-						kudoapi.Phase{
+						{
 							Name: "zzzinvalid",
 							Steps: []kudoapi.Step{
-								kudoapi.Step{
+								{
 									Name: "zzzinvalid",
 								},
 							},
@@ -50,10 +50,10 @@ func TestStatus(t *testing.T) {
 				},
 				"validate": {
 					Phases: []kudoapi.Phase{
-						kudoapi.Phase{
+						{
 							Name: "validate",
 							Steps: []kudoapi.Step{
-								kudoapi.Step{
+								{
 									Name: "validate",
 								},
 							},
