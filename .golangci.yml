@@ -1,22 +1,30 @@
 linters:
   auto-fix: false
   enable:
-    - dupl
-    - errcheck
-    - goconst
-    - gocyclo
-    - goimports
-    - golint
-    - gosec
-    - interfacer
-    - lll
-    - misspell
-    - nakedret
-    - scopelint
-    - stylecheck
-    - unconvert
-    - unparam
+  - deadcode
+  - dupl
+  - errcheck
+  - goconst
+  - gocyclo
+  - gofmt
+  - goimports
+  - golint
+  - gosec
+  - gosimple
+  - ineffassign
+  - lll
+  - misspell
+  - nakedret
+  - scopelint
+  - staticcheck
+  - structcheck
+  - stylecheck
+  - unconvert
+  - unparam
+  - unused
+  - varcheck
 run:
+  timeout: 3m
   build-tags:
     - integration
   skip-dirs:

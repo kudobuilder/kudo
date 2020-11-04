@@ -405,7 +405,7 @@ func statefulSet(name string, namespace string) *appsv1.StatefulSet {
 				Spec: corev1.PodSpec{},
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				corev1.PersistentVolumeClaim{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"vct1": "vct1label",
@@ -413,7 +413,7 @@ func statefulSet(name string, namespace string) *appsv1.StatefulSet {
 					},
 					Spec: corev1.PersistentVolumeClaimSpec{},
 				},
-				corev1.PersistentVolumeClaim{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"vct2": "vct2label",
