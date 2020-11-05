@@ -40,7 +40,7 @@ func (l *Level) Get() interface{} {
 	return *l
 }
 
-//// Required for pflag.Value defined: https://godoc.org/github.com/spf13/pflag#Value
+// Required for pflag.Value defined: https://godoc.org/github.com/spf13/pflag#Value
 
 // String is part of the flag.Value interface.
 func (l *Level) String() string {
@@ -62,7 +62,7 @@ func (l *Level) Type() string {
 	return fmt.Sprint(*l)
 }
 
-//// pflag.Value interface ends
+// pflag.Value interface ends
 
 type loggingT struct {
 	verbosity Level // V logging level, the value of the -v flag/

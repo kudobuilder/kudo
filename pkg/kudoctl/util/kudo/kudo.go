@@ -329,7 +329,7 @@ func (c *Client) IsInstanceDone(instance, oldInstance *kudoapi.Instance) (bool, 
 			same = same && planStatus.UID == instance.Status.PlanStatus[planName].UID
 		}
 		if same {
-			//Nothing changed yet... waiting on the right plan to wait on
+			// Nothing changed yet... waiting on the right plan to wait on
 			return false, nil
 		}
 	}
@@ -485,11 +485,11 @@ func (c *Client) ValidateServerForOperator(operator *kudoapi.Operator) error {
 	if err != nil {
 		return fmt.Errorf("unable to parse operators kubernetes version: %w", err)
 	}
-	//TODO : to be added in when we support kudo server providing server version
-	//expectedKudoVer, err := semver.NewVersion(operator.Spec.KudoVersion)
-	//if err != nil {
-	//	return fmt.Errorf("Unable to parse operators kudo version: %w", err)
-	//}
+	// TODO : to be added in when we support kudo server providing server version
+	// expectedKudoVer, err := semver.NewVersion(operator.Spec.KudoVersion)
+	// if err != nil {
+	// 	return fmt.Errorf("Unable to parse operators kudo version: %w", err)
+	// }
 	// semvar compares patch, for which we do not want to... compare maj, min only
 	kVer, err := getKubeVersion(c.kudoClientset.Discovery())
 	if err != nil {

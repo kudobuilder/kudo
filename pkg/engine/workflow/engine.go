@@ -91,7 +91,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.
 
 		// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
 		if phaseStatus.Status.IsFinished() {
-			phasesLeft = phasesLeft - 1
+			phasesLeft--
 			continue
 		} else if phaseStatus.Status.IsRunning() {
 			phaseStatus.Set(kudoapi.ExecutionInProgress)
@@ -221,7 +221,7 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.
 			}
 		} else {
 			phaseStatus.Set(kudoapi.ExecutionComplete)
-			phasesLeft = phasesLeft - 1
+			phasesLeft--
 		}
 	}
 
