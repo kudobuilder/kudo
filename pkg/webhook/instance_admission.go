@@ -388,10 +388,8 @@ func checkImmutableParameters(old, new map[string]string, newOv, oldOv *kudoapi.
 				return fmt.Errorf("parameter '%s' is immutable but was changed from '%v' to '%v'", p.Name, old[p.Name], new[p.Name])
 			}
 		}
-	} else {
-		if err := validateOVUpgrade(new, newOv, oldOv); err != nil {
-			return err
-		}
+	} else if err := validateOVUpgrade(new, newOv, oldOv); err != nil {
+		return err
 	}
 	return nil
 }
