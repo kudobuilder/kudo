@@ -121,11 +121,12 @@ func parseParameter(raw string) (key string, param string, err *string) {
 
 	var errMsg string
 	s := strings.SplitN(raw, "=", 2)
-	if len(s) < 2 {
+	switch {
+	case len(s) < 2:
 		errMsg = fmt.Sprintf("parameter not set: %+v", raw)
-	} else if s[0] == "" {
+	case s[0] == "":
 		errMsg = fmt.Sprintf("parameter name can not be empty: %+v", raw)
-	} else if s[1] == "" {
+	case s[1] == "":
 		errMsg = fmt.Sprintf("parameter value can not be empty: %+v", raw)
 	}
 	if errMsg != "" {
