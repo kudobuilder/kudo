@@ -119,6 +119,7 @@ func mergeParams(paramsFromCmdline map[string]string, paramsFromFiles map[string
 // detailed error message.
 func parseParameter(raw string) (key string, param string, err *string) {
 
+	//TODO (kensipe): this function and calling code should be refactored to NOT use `err` for strings.  
 	var errMsg string
 	s := strings.SplitN(raw, "=", 2)
 	switch {
