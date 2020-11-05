@@ -37,12 +37,12 @@ func (f *LocalResolver) Resolve(name string, appVersion string, operatorVersion 
 	if fi.Mode().IsRegular() && strings.HasSuffix(name, ".tgz") {
 		clog.V(1).Printf("%v is a local tgz package", name)
 		return reader.ReadTar(f.fs, name)
-	} else if fi.IsDir() {
+	}
+	if fi.IsDir() {
 		clog.V(1).Printf("%v is a local file package", name)
 		return reader.ResourcesFromDir(f.fs, name)
-	} else {
-		return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", name)
 	}
+	return nil, fmt.Errorf("unsupported file system format %v. Expect either a *.tgz file or a folder", name)
 }
 
 // NewLocal creates a resolver for local operator package

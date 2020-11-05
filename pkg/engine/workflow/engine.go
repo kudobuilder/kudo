@@ -90,12 +90,13 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.
 		}
 
 		// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-		if phaseStatus.Status.IsFinished() {
+		switch {
+		case phaseStatus.Status.IsFinished():
 			phasesLeft--
 			continue
-		} else if phaseStatus.Status.IsRunning() {
+		case phaseStatus.Status.IsRunning():
 			phaseStatus.Set(kudoapi.ExecutionInProgress)
-		} else {
+		default:
 			break
 		}
 
@@ -115,13 +116,13 @@ func Execute(pl *ActivePlan, em *engine.Metadata, c client.Client, di discovery.
 			}
 
 			// Check current phase status: skip if finished, proceed if in progress, break out if a fatal error has occurred
-			if stepStatus.Status.IsFinished() {
+			switch {
+			case stepStatus.Status.IsFinished():
 				delete(stepsLeft, stepStatus.Name)
 				continue
-			} else if stepStatus.Status.IsRunning() {
+			case stepStatus.Status.IsRunning():
 				stepStatus.Set(kudoapi.ExecutionInProgress)
-			} else {
-				// we are not in progress and not finished. An unexpected error occurred so that we can not proceed to the next phase
+			default:
 				break
 			}
 

@@ -435,7 +435,7 @@ spec:
               type: array
             planStatus:
               additionalProperties:
-                description: "PlanStatus is representing status of a plan \n These are valid states and transitions \n                       | Never executed |                               |                               v |    Error    |<------>|    Pending     |       ^                       |       |                       v       |               +-------+--------+       |               +-------+--------+       |                       |       v                       v | Fatal error |        |    Complete    |"
+                description: "PlanStatus is representing status of a plan \n These are valid states and transitions \n                        | Never executed |                                |                                v |    Error    |<------>|    Pending     |        ^                       |        |                       v        |               +-------+--------+        |               +-------+--------+        |                       |        v                       v | Fatal error |        |    Complete    |"
                 properties:
                   lastUpdatedTimestamp:
                     format: date-time
