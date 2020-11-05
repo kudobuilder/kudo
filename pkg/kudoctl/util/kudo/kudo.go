@@ -325,7 +325,7 @@ func (c *Client) IsInstanceDone(instance, oldInstance *kudoapi.Instance) (bool, 
 		// We want one of the plans UIDs to change to identify that a new plan ran.
 		// If they're all the same, then nothing changed.
 		same := true
-		for planName, planStatus := range (*oldInstance).Status.PlanStatus {
+		for planName, planStatus := range oldInstance.Status.PlanStatus {
 			same = same && planStatus.UID == instance.Status.PlanStatus[planName].UID
 		}
 		if same {
