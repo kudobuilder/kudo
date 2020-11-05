@@ -1,22 +1,30 @@
 linters:
   auto-fix: false
   enable:
-    - errcheck
-    - goimports
-    - golint
-    - gosec
-    - misspell
-    - scopelint
-    - unconvert
-    - unparam
-    - interfacer
-    - nakedret
-    - gocyclo
-    - dupl
-    - goconst
-    - lll
-    - stylecheck
+  - deadcode
+  - dupl
+  - errcheck
+  - goconst
+  - gocyclo
+  - gofmt
+  - goimports
+  - golint
+  - gosec
+  - gosimple
+  - ineffassign
+  - lll
+  - misspell
+  - nakedret
+  - scopelint
+  - staticcheck
+  - structcheck
+  - stylecheck
+  - unconvert
+  - unparam
+  - unused
+  - varcheck
 run:
+  timeout: 3m
   build-tags:
     - integration
   skip-dirs:
@@ -31,3 +39,9 @@ linters-settings:
     threshold: 400
   goimports:
     local-prefixes: github.com/kudobuilder/kudo
+issues:
+  # ignore gosec for test files
+  exclude-rules:
+  - path: _test\.go
+    linters:
+    - gosec

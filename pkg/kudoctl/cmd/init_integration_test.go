@@ -39,7 +39,7 @@ var testenv testutils.TestEnvironment
 func TestMain(m *testing.M) {
 	var err error
 
-	testenv, err = testutils.StartTestEnvironment(testutils.APIServerDefaultArgs)
+	testenv, err = testutils.StartTestEnvironment(testutils.APIServerDefaultArgs, false)
 	if err != nil {
 		log.Fatal(err)
 	}

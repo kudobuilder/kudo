@@ -69,7 +69,7 @@ The token must grant full access to: `repo`, `write:packages`, `read:packages`.
 
 1. Tag the kudo repo with expected release `git tag -a v0.2.0 -m "v0.2.0"` and push the tag `git push --tags`.
 1. Invoke goreleaser `goreleaser --rm-dist`.
-1. Update the GH release with release highlights. There is a draft that contains categorized changes since the last release. It provides categories for highlights, breaking changes, and contributors which should be added the gorelease release notes. The changelog from the draft log is ignored. After the contents are copied, the draft can be deleted.
+1. Update the GH release with release highlights and supported Kubernetes versions. There is a draft that contains categorized changes since the last release. It provides categories for highlights, breaking changes, and contributors which should be added the gorelease release notes. The changelog from the draft log is ignored. After the contents are copied, the draft can be deleted.
 1. Merge the [branch](#documentation) of the [`kudo.dev`](https://github.com/kudobuilder/kudo.dev) repo dedicated to current release
    into `main`, following the regular GitHub pull request process.
 1. Immediately after that, create a `post-v0.2.0` branch for documentation for a *future* release
