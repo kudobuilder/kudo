@@ -67,8 +67,7 @@ func IsTerminallyFailed(obj runtime.Object) (terminal bool, msg string, err erro
 		return true, "", nil
 	}
 
-	switch obj := obj.(type) {
-	case *batchv1.Job:
+	if obj, ok := obj.(*batchv1.Job); ok {
 		return isJobTerminallyFailed(obj)
 	}
 	return false, "", nil

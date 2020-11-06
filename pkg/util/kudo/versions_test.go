@@ -77,9 +77,6 @@ func TestVersions(t *testing.T) {
 	}
 
 	l.Sort()
-	//for _, i := range l {
-	//	fmt.Printf("sortableOp{name: %q, appVersion: %q, ovVersion: %q},\n", i.OperatorName(), i.AppVersion(), i.OperatorVersion())
-	//}
 
 	assert.Equal(t, l, sortedList)
 

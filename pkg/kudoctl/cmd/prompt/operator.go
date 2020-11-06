@@ -182,7 +182,7 @@ func ForParameter(planNames []string, paramNameList []string) (*packages.Paramet
 		parameter.Required = &t
 	}
 
-	//PlanNameList
+	// PlanNameList
 	if Confirm("Add Trigger Plan (defaults to deploy)") {
 		var trigger string
 		if len(planNames) == 0 {

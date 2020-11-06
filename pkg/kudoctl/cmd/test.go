@@ -131,9 +131,9 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 				return errors.New("only one of --start-control-plane and --start-kind can be set")
 			}
 
-			//if isSet(flags, "start-kudo") {
-			//	//TODO (kensipe): switch to a new way to start kudo (outside of kuttl)
-			//}
+			// if isSet(flags, "start-kudo") {
+			// TODO (kensipe): switch to a new way to start kudo (outside of kuttl)
+			// }
 
 			if isSet(flags, "skip-delete") {
 				options.SkipDelete = skipDelete

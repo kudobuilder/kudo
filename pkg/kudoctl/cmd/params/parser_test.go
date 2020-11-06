@@ -146,10 +146,8 @@ func TestGetParameterMap(t *testing.T) {
 			if len(test.expectedError) == 0 {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expected, params)
-			} else {
-				if assert.Error(t, err) {
-					assert.Equal(t, test.expectedError, err.Error())
-				}
+			} else if assert.Error(t, err) {
+				assert.Equal(t, test.expectedError, err.Error())
 			}
 		})
 	}

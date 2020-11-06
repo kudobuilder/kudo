@@ -78,14 +78,14 @@ func TestUpdate(t *testing.T) {
 		}
 
 		err := update(testInstance.Name, c, &updateOptions{Parameters: tt.parameters}, env.DefaultSettings)
-		if err != nil {
+		switch {
+		case err != nil:
 			if !strings.Contains(err.Error(), tt.errMessageContains) {
 				t.Errorf("%s: expected error '%s' but got '%v'", tt.name, tt.errMessageContains, err)
 			}
-		} else if tt.errMessageContains != "" {
+		case tt.errMessageContains != "":
 			t.Errorf("%s: expected error '%s' but got nil", tt.name, tt.errMessageContains)
-		} else {
-			// the upgrade should have passed without error
+		default:
 			instance, err := c.GetInstance(testInstance.Name, installNamespace)
 			if err != nil {
 				t.Errorf("%s: error when getting instance to verify the test: %v", tt.name, err)

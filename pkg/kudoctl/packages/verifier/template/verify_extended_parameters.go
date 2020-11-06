@@ -182,7 +182,7 @@ func validDescription(description string) (bool, string) {
 		return false, "has no description"
 	}
 	lastChar := description[len(description)-1:]
-	if !strings.Contains(".!?)", lastChar) {
+	if !strings.Contains(".!?)", lastChar) { //nolint:gocritic
 		return false, "has a description not ending with one of '.!?)'"
 	}
 	if !IsUpper(description[0:1]) {

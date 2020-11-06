@@ -598,7 +598,7 @@
                   "description": "slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not",
                   "type": "object",
                   "additionalProperties": {
-                    "description": "PlanStatus is representing status of a plan \n These are valid states and transitions \n                       | Never executed |                               |                               v |    Error    |\u003c------\u003e|    Pending     |       ^                       |       |                       v       |               +-------+--------+       |               +-------+--------+       |                       |       v                       v | Fatal error |        |    Complete    |",
+                    "description": "PlanStatus is representing status of a plan \n These are valid states and transitions \n                        | Never executed |                                |                                v |    Error    |\u003c------\u003e|    Pending     |        ^                       |        |                       v        |               +-------+--------+        |               +-------+--------+        |                       |        v                       v | Fatal error |        |    Complete    |",
                     "type": "object",
                     "properties": {
                       "lastUpdatedTimestamp": {

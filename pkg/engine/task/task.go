@@ -152,7 +152,7 @@ func newToggle(task *kudoapi.Task) (Tasker, error) {
 }
 
 var (
-	pipeFileKeyRe = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`) //a-z, A-Z, 0-9, _ and - are allowed
+	pipeFileKeyRe = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`) // a-z, A-Z, 0-9, _ and - are allowed
 )
 
 func validPipeFile(pf PipeFile) error {
