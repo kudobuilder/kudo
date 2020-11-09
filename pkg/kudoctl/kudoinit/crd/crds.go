@@ -1,4 +1,4 @@
-//Defines the CRDs that the KUDO manager implements and watches.
+// Defines the CRDs that the KUDO manager implements and watches.
 package crd
 
 import (

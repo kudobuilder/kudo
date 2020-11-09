@@ -75,7 +75,7 @@ func TgzDir(fs afero.Fs, path string, w io.Writer) (err error) {
 		}
 
 		// update the name to correctly reflect the desired destination when untaring
-		header.Name = strings.TrimPrefix(strings.Replace(file, path, "", -1), string(filepath.Separator))
+		header.Name = strings.TrimPrefix(strings.ReplaceAll(file, path, ""), string(filepath.Separator))
 
 		// change certain header metadata to make the build reproducible
 		header.ModTime = time.Time{}

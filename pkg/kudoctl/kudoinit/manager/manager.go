@@ -25,7 +25,7 @@ import (
 // Ensure kudoinit.Step is implemented
 var _ kudoinit.Step = &Initializer{}
 
-//Defines the deployment of the KUDO manager and it's service definition.
+// Defines the deployment of the KUDO manager and it's service definition.
 type Initializer struct {
 	options    kudoinit.Options
 	service    *corev1.Service

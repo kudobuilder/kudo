@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-
 	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -24,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -200,7 +199,10 @@ func TestIntegInitWithNameSpace(t *testing.T) {
 	}()
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.NoError(t, envtest.WaitForCRDs(testenv.Config, crds, envtest.CRDInstallOptions{
+		PollInterval: 100 * time.Millisecond,
+		MaxTime:      10 * time.Second,
+	}))
 
 	// make sure that the controller lives in the correct namespace
 	kclient = getKubeClient(t)
@@ -348,7 +350,10 @@ func TestInitWithServiceAccount(t *testing.T) {
 				}()
 
 				// WaitForCRDs to be created... the init cmd did NOT wait
-				assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+				assert.NoError(t, envtest.WaitForCRDs(testenv.Config, crds, envtest.CRDInstallOptions{
+					PollInterval: 100 * time.Millisecond,
+					MaxTime:      10 * time.Second,
+				}))
 
 				// make sure that the controller lives in the correct namespace
 				kclient = getKubeClient(t)
@@ -402,7 +407,10 @@ func TestReInitFails(t *testing.T) {
 	assert.NoError(t, err)
 
 	// WaitForCRDs to be created... the init cmd did NOT wait
-	assert.NoError(t, testutils.WaitForCRDs(testenv.DiscoveryClient, crds))
+	assert.NoError(t, envtest.WaitForCRDs(testenv.Config, crds, envtest.CRDInstallOptions{
+		PollInterval: 100 * time.Millisecond,
+		MaxTime:      10 * time.Second,
+	}))
 	defer func() {
 		assert.NoError(t, deleteObjects(crds, testClient))
 	}()

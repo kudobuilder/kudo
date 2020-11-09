@@ -201,7 +201,7 @@ func webhookPath(prefix string, obj runtime.Object, mgr manager.Manager) (string
 
 	// if the strategy to generate this path changes we should update init code and webhook setup
 	// right now this is in sync how controller-runtime generates these paths
-	return prefix + "-" + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
+	return prefix + "-" + strings.ReplaceAll(gvk.Group, ".", "-") + "-" +
 		gvk.Version + "-" + strings.ToLower(gvk.Kind), nil
 }
 

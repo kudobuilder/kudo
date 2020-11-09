@@ -142,12 +142,12 @@ func TestPrereq_Ok_PreValidate_Webhook_CertManager_MultipleVersions(t *testing.T
 	})
 
 	issuer := createCrd("issuers.certmanager.k8s.io", "v1alpha1")
-	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{ //nolint:gocritic
 		Name:    "v1beta1",
 		Served:  true,
 		Storage: false,
 	})
-	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{ //nolint:gocritic
 		Name:    "v1beta2",
 		Served:  true,
 		Storage: false,
