@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -130,24 +130,24 @@ func TestPrereq_Ok_PreValidate_Webhook_CertManager_MultipleVersions(t *testing.T
 	client := getFakeClient()
 
 	cert := createCrd("certificates.certmanager.k8s.io", "v1alpha1")
-	cert.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+	cert.Spec.Versions = append(cert.Spec.Versions, apiextv1.CustomResourceDefinitionVersion{
 		Name:    "v1beta1",
 		Served:  true,
 		Storage: false,
 	})
-	cert.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+	cert.Spec.Versions = append(cert.Spec.Versions, apiextv1.CustomResourceDefinitionVersion{
 		Name:    "v1beta2",
 		Served:  true,
 		Storage: false,
 	})
 
 	issuer := createCrd("issuers.certmanager.k8s.io", "v1alpha1")
-	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{ //nolint:gocritic
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextv1.CustomResourceDefinitionVersion{ //nolint:gocritic
 		Name:    "v1beta1",
 		Served:  true,
 		Storage: false,
 	})
-	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{ //nolint:gocritic
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextv1.CustomResourceDefinitionVersion{ //nolint:gocritic
 		Name:    "v1beta2",
 		Served:  true,
 		Storage: false,
@@ -166,7 +166,7 @@ func TestPrereq_Ok_PreValidate_Webhook_CertManager_MultipleVersions(t *testing.T
 	assert.Equal(t, 0, len(result.Errors))
 }
 
-func mockFullCRD(client *kube.Client, definition *apiextensions.CustomResourceDefinition) {
+func mockFullCRD(client *kube.Client, definition *apiextv1.CustomResourceDefinition) {
 	client.ExtClient.(*apiextensionsfake.Clientset).Fake.PrependReactor("get", "customresourcedefinitions", func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
 		getAction, _ := action.(testing2.GetAction)
 		if getAction != nil {
@@ -178,16 +178,16 @@ func mockFullCRD(client *kube.Client, definition *apiextensions.CustomResourceDe
 	})
 }
 
-func createCrd(crdName string, apiVersion string) *apiextensions.CustomResourceDefinition {
-	return &apiextensions.CustomResourceDefinition{
+func createCrd(crdName string, apiVersion string) *apiextv1.CustomResourceDefinition {
+	return &apiextv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: crdName,
 		},
-		Spec: apiextensions.CustomResourceDefinitionSpec{
-			Versions: []apiextensions.CustomResourceDefinitionVersion{
+		Spec: apiextv1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1.CustomResourceDefinitionVersion{
 				{
 					Name:    apiVersion,
 					Served:  true,
@@ -195,7 +195,7 @@ func createCrd(crdName string, apiVersion string) *apiextensions.CustomResourceD
 				},
 			},
 		},
-		Status: apiextensions.CustomResourceDefinitionStatus{},
+		Status: apiextv1.CustomResourceDefinitionStatus{},
 	}
 }
 
