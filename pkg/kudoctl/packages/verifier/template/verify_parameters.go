@@ -63,8 +63,7 @@ func paramDefaults(pf *packages.Files) verifier.Result {
 	res := verifier.NewResult()
 	for _, p := range pf.Params.Parameters {
 		if p.HasDefault() {
-			if err := p.
-				ValidateDefault(); err != nil {
+			if err := p.ValidateDefault(); err != nil {
 				res.AddErrors(err.Error())
 			}
 		}
