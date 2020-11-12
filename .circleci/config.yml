@@ -8,7 +8,7 @@ jobs:
     steps:
       - checkout
       - run: echo 'export INTEGRATION_OUTPUT_JUNIT="true"' >> $BASH_ENV
-      - run: ./test/run_tests.sh "integration-test kuttl-test"
+      - run: ./test/run_tests.sh "integration-test"
       - store_test_results:
           path: reports/
 
