@@ -89,6 +89,7 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 	}
 	new.Spec.PlanExecution.PlanName = kudoapi.DeployPlanName
 	new.Spec.PlanExecution.UID = uuid.NewUUID()
+	new.Spec.Parameters = map[string]string{}
 
 	setImmutableParameterDefaults(ov, new)
 	if err := validateParameters(ov, new); err != nil {
