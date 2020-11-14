@@ -89,7 +89,6 @@ func handleCreate(ia *InstanceAdmission, req admission.Request) admission.Respon
 	}
 	new.Spec.PlanExecution.PlanName = kudoapi.DeployPlanName
 	new.Spec.PlanExecution.UID = uuid.NewUUID()
-	new.Spec.Parameters = map[string]string{}
 
 	setImmutableParameterDefaults(ov, new)
 	if err := validateParameters(ov, new); err != nil {
@@ -464,6 +463,9 @@ func setImmutableParameterDefaults(ov *kudoapi.OperatorVersion, instance *kudoap
 	for _, p := range ov.Spec.Parameters {
 		if p.IsImmutable() && p.HasDefault() {
 			if _, ok := instance.Spec.Parameters[p.Name]; !ok {
+				if instance.Spec.Parameters == nil {
+					instance.Spec.Parameters = map[string]string{}
+				}
 				instance.Spec.Parameters[p.Name] = *p.Default
 			}
 		}
