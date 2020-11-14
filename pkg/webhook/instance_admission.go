@@ -462,10 +462,10 @@ func validateParameters(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance)
 func setImmutableParameterDefaults(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance) {
 	for _, p := range ov.Spec.Parameters {
 		if p.IsImmutable() && p.HasDefault() {
+			if instance.Spec.Parameters == nil {
+				instance.Spec.Parameters = map[string]string{}
+			}
 			if _, ok := instance.Spec.Parameters[p.Name]; !ok {
-				if instance.Spec.Parameters == nil {
-					instance.Spec.Parameters = map[string]string{}
-				}
 				instance.Spec.Parameters[p.Name] = *p.Default
 			}
 		}
