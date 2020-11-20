@@ -54,7 +54,7 @@ func NewPlanHistoryCmd() *cobra.Command {
 	return cmd
 }
 
-//NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
+// NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
 func NewPlanStatusCmd(out io.Writer) *cobra.Command {
 	options := &plan.StatusOptions{Out: out}
 	cmd := &cobra.Command{

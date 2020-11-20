@@ -388,10 +388,8 @@ func checkImmutableParameters(old, new map[string]string, newOv, oldOv *kudoapi.
 				return fmt.Errorf("parameter '%s' is immutable but was changed from '%v' to '%v'", p.Name, old[p.Name], new[p.Name])
 			}
 		}
-	} else {
-		if err := validateOVUpgrade(new, newOv, oldOv); err != nil {
-			return err
-		}
+	} else if err := validateOVUpgrade(new, newOv, oldOv); err != nil {
+		return err
 	}
 	return nil
 }
@@ -464,6 +462,9 @@ func validateParameters(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance)
 func setImmutableParameterDefaults(ov *kudoapi.OperatorVersion, instance *kudoapi.Instance) {
 	for _, p := range ov.Spec.Parameters {
 		if p.IsImmutable() && p.HasDefault() {
+			if instance.Spec.Parameters == nil {
+				instance.Spec.Parameters = map[string]string{}
+			}
 			if _, ok := instance.Spec.Parameters[p.Name]; !ok {
 				instance.Spec.Parameters[p.Name] = *p.Default
 			}

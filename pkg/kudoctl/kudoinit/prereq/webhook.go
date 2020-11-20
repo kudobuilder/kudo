@@ -261,7 +261,7 @@ func (k *KudoWebHook) detectCertManagerVersion(client *kube.Client, result *veri
 func detectCertManagerCRD(extClient clientset.Interface, api certManagerVersion) (string, string, error) {
 	testCRD := fmt.Sprintf("certificates.%s", api.group)
 	clog.V(4).Printf("Try to retrieve cert-manager CRD %s", testCRD)
-	crd, err := extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), testCRD, metav1.GetOptions{})
+	crd, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), testCRD, metav1.GetOptions{})
 	if err == nil {
 		servedVersions := kubeLikeVersions{}
 		// Look through the versions and find the one that is the stored one
@@ -349,7 +349,7 @@ func (k *KudoWebHook) validateCertManagerInstallation(client *kube.Client, resul
 }
 
 func validateCrdVersion(extClient clientset.Interface, crdName string, expectedVersion string, result *verifier.Result) error {
-	certCRD, err := extClient.ApiextensionsV1beta1().CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
+	certCRD, err := extClient.ApiextensionsV1().CustomResourceDefinitions().Get(context.TODO(), crdName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			result.AddErrors(fmt.Sprintf("failed to find CRD '%s': %s", crdName, err))

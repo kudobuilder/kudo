@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -142,12 +142,12 @@ func TestPrereq_Ok_PreValidate_Webhook_CertManager_MultipleVersions(t *testing.T
 	})
 
 	issuer := createCrd("issuers.certmanager.k8s.io", "v1alpha1")
-	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{ //nolint:gocritic
 		Name:    "v1beta1",
 		Served:  true,
 		Storage: false,
 	})
-	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{
+	issuer.Spec.Versions = append(cert.Spec.Versions, apiextensions.CustomResourceDefinitionVersion{ //nolint:gocritic
 		Name:    "v1beta2",
 		Served:  true,
 		Storage: false,

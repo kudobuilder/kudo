@@ -34,7 +34,7 @@ func TestRegularFileTarball(t *testing.T) {
 	err = f.Close()
 	assert.NoError(t, err)
 
-	//open for reading in an untar
+	// open for reading in an untar
 	f, err = fs.Open("/opt/zk.tgz")
 	assert.NoError(t, err)
 	defer f.Close()

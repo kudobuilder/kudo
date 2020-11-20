@@ -228,7 +228,6 @@ func WriteJSONSchema(ov *kudoapi.OperatorVersion, outputType output.Type, out io
 		return err
 	}
 
-	//schemaJSON := MustAsset("config/json-schema/full.json")
 	schemaJSON := MustAsset("config/json-schema/limited.json")
 
 	s := &jsonschema.Schema{}

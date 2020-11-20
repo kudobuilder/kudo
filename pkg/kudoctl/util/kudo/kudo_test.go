@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
-	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,27 +41,27 @@ func newFakeKubeClient() *kube.Client {
 }
 
 func TestKudoClient_ValidateServedCrds(t *testing.T) {
-	crdWrongVersion := apiextv1beta1.CustomResourceDefinition{
-		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
-			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+	crdWrongVersion := apiextv1.CustomResourceDefinition{
+		Spec: apiextv1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1.CustomResourceDefinitionVersion{
 				{
 					Name:   "v1beta2",
 					Served: true,
 				},
 			},
 		},
-		Status: apiextv1beta1.CustomResourceDefinitionStatus{
-			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+		Status: apiextv1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1.CustomResourceDefinitionCondition{
 				{
-					Type:   apiextv1beta1.Established,
-					Status: apiextv1beta1.ConditionTrue,
+					Type:   apiextv1.Established,
+					Status: apiextv1.ConditionTrue,
 				},
 			},
 		},
 	}
-	crdNotServed := apiextv1beta1.CustomResourceDefinition{
-		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
-			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+	crdNotServed := apiextv1.CustomResourceDefinition{
+		Spec: apiextv1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1.CustomResourceDefinitionVersion{
 				{
 					Name:   "v1beta1",
 					Served: false,
@@ -72,33 +72,33 @@ func TestKudoClient_ValidateServedCrds(t *testing.T) {
 				},
 			},
 		},
-		Status: apiextv1beta1.CustomResourceDefinitionStatus{
-			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+		Status: apiextv1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1.CustomResourceDefinitionCondition{
 				{
-					Type:   apiextv1beta1.Established,
-					Status: apiextv1beta1.ConditionTrue,
+					Type:   apiextv1.Established,
+					Status: apiextv1.ConditionTrue,
 				},
 			},
 		},
 	}
-	crdUnHealthy := apiextv1beta1.CustomResourceDefinition{
-		Spec: apiextv1beta1.CustomResourceDefinitionSpec{
-			Versions: []apiextv1beta1.CustomResourceDefinitionVersion{
+	crdUnHealthy := apiextv1.CustomResourceDefinition{
+		Spec: apiextv1.CustomResourceDefinitionSpec{
+			Versions: []apiextv1.CustomResourceDefinitionVersion{
 				{
 					Name:   "v1beta2",
 					Served: true,
 				},
 			},
 		},
-		Status: apiextv1beta1.CustomResourceDefinitionStatus{
-			Conditions: []apiextv1beta1.CustomResourceDefinitionCondition{
+		Status: apiextv1.CustomResourceDefinitionStatus{
+			Conditions: []apiextv1.CustomResourceDefinitionCondition{
 				{
-					Type:   apiextv1beta1.Established,
-					Status: apiextv1beta1.ConditionFalse,
+					Type:   apiextv1.Established,
+					Status: apiextv1.ConditionFalse,
 				},
 				{
-					Type:   apiextv1beta1.Terminating,
-					Status: apiextv1beta1.ConditionTrue,
+					Type:   apiextv1.Terminating,
+					Status: apiextv1.ConditionTrue,
 				},
 			},
 		},
@@ -106,7 +106,7 @@ func TestKudoClient_ValidateServedCrds(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		crdBase *apiextv1beta1.CustomResourceDefinition
+		crdBase *apiextv1.CustomResourceDefinition
 		err     string
 	}{
 		{name: "no crd", err: `CRDs invalid: CRD operators.kudo.dev is not installed       
@@ -139,7 +139,7 @@ CRD instances.kudo.dev is not healthy ( Conditions: [{Established False 0001-01-
 				for _, crdName := range crdNames {
 					crd := tt.crdBase.DeepCopy()
 					crd.Name = crdName
-					_, _ = kubeClient.ExtClient.ApiextensionsV1beta1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{})
+					_, _ = kubeClient.ExtClient.ApiextensionsV1().CustomResourceDefinitions().Create(context.TODO(), crd, metav1.CreateOptions{})
 				}
 			}
 

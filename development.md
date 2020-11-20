@@ -31,6 +31,11 @@ The follow are a list of tools needed or useful in order to build, run, test and
 * [ngrok](https://ngrok.com/) - This is currently needed for full debugging. We are looking at alternatives. It does require signing up for this service.
 * [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) - Binaries for `kube-apiserver` and `etcd` from kubebuilder are used for integration testing.
 
+## Supported Kubernetes versions
+
+Use of Kubernetes APIs is limited to APIs supported by the current version of Kubernetes' `kube-apiserver` and two minor versions older at the time of a KUDO release. This is similar to the allowed version skew of `kubelet` and `kube-apiserver` following [Kubernetes' version skew policy](https://kubernetes.io/docs/setup/release/version-skew-policy/). E.g., for a version of KUDO released while Kubernetes 1.18 is current, only APIs that are supported in Kubernetes 1.16, 1.17 and 1.18 can be used.
+Functionality using APIs that don't conform to this rule should be placed behind a feature gate.
+
 ## Running Locally
 
 These details will show using kind as a local kubernetes cluster.  These instructions should work with minikube as well.

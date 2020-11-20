@@ -16,7 +16,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	extv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -315,15 +315,15 @@ func MockCRD(client *kube.Client, crdName string, apiVersion string) {
 		getAction, _ := action.(testing2.GetAction)
 		if getAction != nil {
 			if getAction.GetName() == crdName {
-				crd := &extv1beta1.CustomResourceDefinition{
+				crd := &extv1.CustomResourceDefinition{
 					TypeMeta: metav1.TypeMeta{
 						APIVersion: apiVersion,
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name: crdName,
 					},
-					Spec: extv1beta1.CustomResourceDefinitionSpec{
-						Versions: []extv1beta1.CustomResourceDefinitionVersion{
+					Spec: extv1.CustomResourceDefinitionSpec{
+						Versions: []extv1.CustomResourceDefinitionVersion{
 							{
 								Name:    apiVersion,
 								Served:  true,
@@ -331,7 +331,7 @@ func MockCRD(client *kube.Client, crdName string, apiVersion string) {
 							},
 						},
 					},
-					Status: extv1beta1.CustomResourceDefinitionStatus{},
+					Status: extv1.CustomResourceDefinitionStatus{},
 				}
 				return true, crd, nil
 			}

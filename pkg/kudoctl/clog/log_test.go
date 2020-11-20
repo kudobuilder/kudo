@@ -33,7 +33,7 @@ func TestLevelCheck(t *testing.T) {
 
 func TestDefaultPrintLevel(t *testing.T) {
 
-	//default is verbosity of 0 -v=0 or not supplied
+	// default is verbosity of 0 -v=0 or not supplied
 	var buf bytes.Buffer
 
 	logging.out = &buf
@@ -53,7 +53,7 @@ func TestDefaultPrintLevel(t *testing.T) {
 }
 
 func TestErrorf(t *testing.T) {
-	//default is verbosity of 0 -v=0 or not supplied
+	// default is verbosity of 0 -v=0 or not supplied
 	var buf bytes.Buffer
 
 	logging.verbosity = Level(0)
