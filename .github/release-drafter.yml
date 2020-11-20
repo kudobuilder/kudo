@@ -20,6 +20,10 @@ template: |
 
   $CHANGES
 
+  ## Supported Kubernetes Versions
+
+  This release of KUDO is using the Kubernetes API 1.19 and is compatible with Kubernetes versions 1.17, 1.18, and 1.19.
+
   ## Contributors
 
   $CONTRIBUTORS

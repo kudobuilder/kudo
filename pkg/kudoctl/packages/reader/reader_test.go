@@ -50,8 +50,8 @@ func TestReadFileSystemPackage(t *testing.T) {
 				t.Errorf("Found unexpected error when loading golden files: %v", err)
 			}
 
-			//we need to sort here because current yaml parsing is not preserving the order of fields
-			//at the same time, the deep library we use for equality does not support ignoring order
+			// we need to sort here because current yaml parsing is not preserving the order of fields
+			// at the same time, the deep library we use for equality does not support ignoring order
 			sort.Slice(got.OperatorVersion.Spec.Parameters, func(i, j int) bool {
 				return got.OperatorVersion.Spec.Parameters[i].Name < got.OperatorVersion.Spec.Parameters[j].Name
 			})

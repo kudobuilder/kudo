@@ -63,12 +63,13 @@ func planHistory(options *Options, settings *env.Settings) error {
 		plan := instance.Status.PlanStatus[p]
 		msg := "never run" // this is for the cases when status was not yet populated
 
-		if plan.LastUpdatedTimestamp != nil && !plan.LastUpdatedTimestamp.IsZero() { // plan already finished
+		switch {
+		case plan.LastUpdatedTimestamp != nil && !plan.LastUpdatedTimestamp.IsZero():
 			t := plan.LastUpdatedTimestamp.Format(timeLayout)
 			msg = fmt.Sprintf("last finished run at %s (%s)", t, string(plan.Status))
-		} else if plan.Status.IsRunning() {
+		case plan.Status.IsRunning():
 			msg = "is running"
-		} else if plan.Status != "" {
+		case plan.Status != "":
 			msg = string(plan.Status)
 		}
 		historyDisplay := fmt.Sprintf("%s (%s)", plan.Name, msg)

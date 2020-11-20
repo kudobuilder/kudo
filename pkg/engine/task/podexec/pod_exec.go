@@ -195,7 +195,7 @@ func untarFile(fs afero.Fs, r io.Reader, fileName string) error {
 				return err
 			}
 
-			written = written + w
+			written += w
 			if written > writtenLimit {
 				return errors.New("untar aborted because archive exceeds 4GiB")
 			}

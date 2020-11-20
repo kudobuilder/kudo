@@ -9,15 +9,18 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/verify"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/reader"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/verifier/template"
 )
 
 // package verify provides verification or linting checks against the package passed to the command.
 
 type packageVerifyCmd struct {
-	fs     afero.Fs
-	out    io.Writer
-	output output.Type
+	fs          afero.Fs
+	out         io.Writer
+	output      output.Type
+	paramChecks []string
 }
 
 func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
@@ -37,7 +40,7 @@ func newPackageVerifyCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP((*string)(&verifyCmd.output), "output", "o", "", "Output format for command results.")
-
+	cmd.Flags().StringSliceVar(&verifyCmd.paramChecks, "param-checks", []string{}, fmt.Sprintf("Additional parameter checks: %v", template.ParamVerifyArguments))
 	return cmd
 }
 
@@ -45,15 +48,22 @@ func (c *packageVerifyCmd) run(path string) error {
 	if err := c.output.Validate(); err != nil {
 		return err
 	}
-	return verifyPackage(c.fs, path, c.out, c.output)
+	opts := template.ExtendedParametersVerifier{}
+	if err := opts.SetFromArguments(c.paramChecks); err != nil {
+		return err
+	}
+	return verifyPackage(c.fs, path, c.out, c.output, []packages.Verifier{&opts})
 }
 
-func verifyPackage(fs afero.Fs, path string, out io.Writer, outType output.Type) error {
+func verifyPackage(fs afero.Fs, path string, out io.Writer, outType output.Type, additionalVerifiers []packages.Verifier) error {
 	pf, err := reader.PackageFilesFromDir(fs, path)
 	if err != nil {
 		return err
 	}
 	res := verify.PackageFiles(pf)
+	for _, v := range additionalVerifiers {
+		res.Merge(v.Verify(pf))
+	}
 
 	if outType != "" {
 		if err = output.WriteObject(res.ForOutput(), outType, out); err != nil {

@@ -109,6 +109,7 @@ func ExtractTar(out afero.Fs, r io.Reader) error {
 			}
 
 			// copy over contents. the files are extracted into the root of the passed Fs
+			// nolint:gosec
 			err = afero.WriteFile(out, path.Join("/", header.Name), buf, 0644)
 			if err != nil {
 				return fmt.Errorf("while writing file %s: %v", header.Name, err)

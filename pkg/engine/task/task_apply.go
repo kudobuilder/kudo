@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -192,8 +194,9 @@ func patchResource(modifiedObj, currentObj runtime.Object, ctx Context) error {
 
 func useSimpleThreeWayMerge(newObj runtime.Object) bool {
 	_, isUnstructured := newObj.(runtime.Unstructured)
-	_, isCRD := newObj.(*apiextv1beta1.CustomResourceDefinition)
-	return isUnstructured || isCRD || isKudoType(newObj)
+	_, isCRDV1Beta1 := newObj.(*apiextv1beta1.CustomResourceDefinition)
+	_, isCRDV1 := newObj.(*apiextv1.CustomResourceDefinition)
+	return isUnstructured || isCRDV1Beta1 || isCRDV1 || isKudoType(newObj)
 }
 
 func isKudoType(object runtime.Object) bool {
