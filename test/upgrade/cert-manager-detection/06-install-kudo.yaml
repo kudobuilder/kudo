@@ -1,5 +1,5 @@
 apiVersion: kudo.dev/v1beta1
 kind: TestStep
 commands:
-  - command: sleep 10
+  - command: sleep 20
   - command: kubectl kudo init -v 4 --kudo-image kudobuilder/controller:test --kudo-image-pull-policy IfNotPresent --wait
