@@ -25,7 +25,8 @@ import (
 	"strings"
 	"time"
 
-	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiext1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery/cached/memory"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -98,8 +99,12 @@ func main() {
 	}
 	log.Print("Scheme initialization")
 
-	if err := apiextv1.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Printf("Unable to add extension APIs to scheme: %v", err)
+	// We want both extensionapis registered so we can handle them correctly and typed, for example in the health util
+	if err := apiext1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Printf("Unable to add extension APIs v1 to scheme: %v", err)
+	}
+	if err := apiextv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Printf("Unable to add extension APIs v1beta1 to scheme: %v", err)
 	}
 
 	// Setup all Controllers
