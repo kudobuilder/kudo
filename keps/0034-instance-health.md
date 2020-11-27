@@ -8,8 +8,8 @@ owners:
   - "@alenkacz"
 editor: TBD
 creation-date: 2020-09-24
-last-updated: 2020-09-29
-status: implementable
+last-updated: 2020-11-19
+status: implemented
 ---
 
 # KUDO instance readiness

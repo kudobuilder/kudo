@@ -44,8 +44,8 @@ else
 endif
 
 .PHONY: integration-test
-# Run Go integration tests
-integration-test: cli-fast manager-fast ##Runs Go integration tests
+# Run all integration tests
+integration-test: cli-fast manager-fast
 	TEST_ONLY=$(TEST) ./hack/run-integration-tests.sh
 
 .PHONY: kuttl-test

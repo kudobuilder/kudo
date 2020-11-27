@@ -17,7 +17,7 @@ fi
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
-    echo "Running integration tests with junit output"
+    echo "Running go integration tests with junit output"
     mkdir -p reports/
     go get github.com/jstemmer/go-junit-report
     go test -tags integration ./pkg/... ./cmd/... -v ${MOD_FLAGS} -coverprofile cover-integration.out 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/integration_report.xml
@@ -25,3 +25,7 @@ else
     echo "Running integration tests without junit output"
     go test -tags integration ./pkg/... ./cmd/... -v ${MOD_FLAGS} -coverprofile cover-integration.out
 fi
+
+echo "Running KUTTL integration tests"
+
+./hack/run-kuttl-tests.sh
