@@ -98,7 +98,8 @@ func parsePackageFile(filePath string, fileBytes []byte, currentPackage *package
 		}
 		currentPackage.Params = &paramsFile
 	default:
-		return fmt.Errorf("unexpected file when reading package from filesystem: %s", filePath)
+		// we ignore unexpected files as they might belong to a dependency operator
+		return nil
 	}
 	return nil
 }

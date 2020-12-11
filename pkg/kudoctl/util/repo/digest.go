@@ -65,7 +65,7 @@ func pathToOperator(fs afero.Fs, path string) (pfd *PackageFilesDigest, err erro
 		return nil, err
 	}
 
-	files, err := reader.ParseTgz(bytes.NewBuffer(b))
+	files, err := reader.PackageFilesFromTar(afero.NewMemMapFs(), bytes.NewBuffer(b))
 	pfd = &PackageFilesDigest{
 		files,
 		digest,

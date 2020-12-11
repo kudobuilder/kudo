@@ -6,7 +6,6 @@ import (
 	"github.com/thoas/go-funk"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
-	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
@@ -67,18 +66,6 @@ func OperatorAndOperatorVersion(
 }
 
 func installDependencies(client *kudo.Client, ov *kudoapi.OperatorVersion, dependencies []deps.Dependency) error {
-	// The KUDO controller will create Instances for the dependencies. For this
-	// it needs to resolve the dependencies again from 'KudoOperatorTaskSpec'.
-	// But it cannot resolve packages like the CLI, because it may
-	// not have access to the referenced local files or URLs.
-	// It can however resolve the OperatorVersion from the name of the operator
-	// dependency. For this, we overwrite the 'Package' field describing
-	// dependencies in 'KudoOperatorTaskSpec' with the operator name of the
-	// dependency and the 'OperatorVersion' with the corresponding version.
-	// This has to be done for the operator to upgrade as well as in  all of its new dependencies.
-
-	updateKudoOperatorTasks(dependencies, ov)
-
 	for _, dependency := range dependencies {
 		dependency.Operator.SetNamespace(ov.Namespace)
 		dependency.OperatorVersion.SetNamespace(ov.Namespace)
@@ -104,8 +91,6 @@ func installDependencies(client *kudo.Client, ov *kudoapi.OperatorVersion, depen
 		}
 
 		if !funk.ContainsString(installed, dependency.OperatorVersion.Spec.Version) {
-			updateKudoOperatorTasks(dependencies, dependency.OperatorVersion)
-
 			if _, err := client.InstallOperatorVersionObjToCluster(
 				dependency.OperatorVersion,
 				dependency.OperatorVersion.Namespace); err != nil {
@@ -123,27 +108,4 @@ func installDependencies(client *kudo.Client, ov *kudoapi.OperatorVersion, depen
 	}
 
 	return nil
-}
-
-// updateKudoOperatorTasks method updates all 'KudoOperatorTasks' of an OperatorVersion by setting their 'Package' and
-// 'OperatorVersion' fields to the already resolved packages. This is done for the KUDO controller to be able to grab
-// the right 'OperatorVersion' resources from the cluster when the corresponding task is executed.
-func updateKudoOperatorTasks(
-	dependencies []deps.Dependency, operatorVersion *kudoapi.OperatorVersion) {
-	tasks := operatorVersion.Spec.Tasks
-
-	for i := range tasks {
-		if tasks[i].Kind == engtask.KudoOperatorTaskKind {
-			for _, dependency := range dependencies {
-				if tasks[i].Spec.KudoOperatorTaskSpec.Package == dependency.PackageName {
-					tasks[i].Spec.KudoOperatorTaskSpec.Package = dependency.Operator.Name
-					tasks[i].Spec.KudoOperatorTaskSpec.OperatorVersion = dependency.OperatorVersion.Spec.Version
-					tasks[i].Spec.KudoOperatorTaskSpec.AppVersion = dependency.OperatorVersion.Spec.AppVersion
-					break
-				}
-			}
-		}
-	}
-
-	operatorVersion.Spec.Tasks = tasks
 }

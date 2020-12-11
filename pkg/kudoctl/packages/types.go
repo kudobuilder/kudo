@@ -10,6 +10,21 @@ const (
 	APIVersion = "kudo.dev/v1beta1"
 )
 
+// Resolver will try to resolve a given package name to either local tarball, folder, remote url or
+// an operator in the remote repository.
+type Resolver interface {
+	Resolve(name string, appVersion string, operatorVersion string) (*PackageScope, error)
+}
+
+// PackageScope type provides operator resources together with a "scope-aware" dependency resolver.
+// For example, a dependency like `./child-operator` in an local directory needs the host system to be resolved, but when
+// found in a tarball, it needs the contents of the tarball because the dependency is not allowed to "escape" into the
+// host system.
+type PackageScope struct {
+	Resources            *Resources
+	DependenciesResolver Resolver
+}
+
 // Resources is collection of CRDs that are used when installing operator
 // during installation, package format is converted to this structure
 type Resources struct {

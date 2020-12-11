@@ -2,10 +2,7 @@ package dependencies
 
 import (
 	"fmt"
-	"path/filepath"
-	"strings"
 
-	"github.com/spf13/afero"
 	"github.com/thoas/go-funk"
 	"github.com/yourbasic/graph"
 
@@ -13,7 +10,6 @@ import (
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
-	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 )
 
 // dependencyGraph is modeled after 'graph.Mutable' but allows to add vertices.
@@ -48,8 +44,6 @@ func (g *dependencyGraph) Visit(v int, do func(w int, c int64) bool) bool {
 
 type Dependency struct {
 	packages.Resources
-
-	PackageName string
 }
 
 // Resolve resolves all dependencies of an OperatorVersion. Dependencies are resolved recursively.
@@ -58,7 +52,7 @@ type Dependency struct {
 // operator in a directory. In that case all its relative dependencies (if any exist) will be relative
 // to the operator directory (the one with `operator.yaml` file).
 // See github.com/kudobuilder/kudo/issues/1701 for additional context.
-func Resolve(operatorArgument string, operatorVersion *kudoapi.OperatorVersion, resolver pkgresolver.Resolver) ([]Dependency, error) {
+func Resolve(operatorVersion *kudoapi.OperatorVersion, resolver packages.Resolver) ([]Dependency, error) {
 	root := packages.Resources{
 		OperatorVersion: operatorVersion,
 	}
@@ -72,10 +66,7 @@ func Resolve(operatorArgument string, operatorVersion *kudoapi.OperatorVersion, 
 		edges: []map[int]struct{}{{}},
 	}
 
-	// Here we only care whether the path is absolute or not so we can ignore the error
-	operatorDir, _ := operatorAbsPath(operatorArgument)
-
-	if err := dependencyWalk(&dependencies, &g, root, 0, resolver, operatorDir); err != nil {
+	if err := dependencyWalk(&dependencies, &g, &root, 0, resolver); err != nil {
 		return nil, err
 	}
 
@@ -86,10 +77,9 @@ func Resolve(operatorArgument string, operatorVersion *kudoapi.OperatorVersion, 
 func dependencyWalk(
 	dependencies *[]Dependency,
 	g *dependencyGraph,
-	parent packages.Resources,
+	parent *packages.Resources,
 	parentIndex int,
-	resolver pkgresolver.Resolver,
-	operatorDirectory *string) error {
+	resolver packages.Resolver) error {
 	//nolint:errcheck
 	childrenTasks := funk.Filter(parent.OperatorVersion.Spec.Tasks, func(task kudoapi.Task) bool {
 		return task.Kind == engtask.KudoOperatorTaskKind
@@ -98,23 +88,7 @@ func dependencyWalk(
 	for _, childTask := range childrenTasks {
 		childPackageName := childTask.Spec.KudoOperatorTaskSpec.Package
 
-		// if the path to a child dependency is a relative one, we construct the absolute path for the
-		// resolver by combining the absolute path for the operator directory with the relative dependency path
-		// a relative dependency path must begin with either './' or '../'
-		isRelativePackage := strings.HasPrefix(childPackageName, "./") || strings.HasPrefix(childPackageName, "../")
-		if isRelativePackage {
-			if operatorDirectory == nil {
-				return fmt.Errorf("a dependency with a relative path %q is only allowed in a parent %v when it is a local directory", childPackageName, parent.OperatorVersion.FullyQualifiedName())
-			}
-			childDirectory, err := operatorAbsPath(filepath.Join(*operatorDirectory, childPackageName))
-			if err != nil {
-				return fmt.Errorf("local dependency %s of the parent %s has an invalid path: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
-			}
-			childPackageName = *childDirectory
-
-		}
-
-		childRes, err := resolver.Resolve(
+		childResolved, err := resolver.Resolve(
 			childPackageName,
 			childTask.Spec.KudoOperatorTaskSpec.AppVersion,
 			childTask.Spec.KudoOperatorTaskSpec.OperatorVersion)
@@ -123,15 +97,42 @@ func dependencyWalk(
 				"failed to resolve package %s, dependency of package %s: %v", fullyQualifiedName(childTask.Spec.KudoOperatorTaskSpec), parent.OperatorVersion.FullyQualifiedName(), err)
 		}
 
+		// after resolving the dependency we update the KudoOperatorTask.Spec definition with the resolved
+		// operator name, version and app version so that a definition like:
+		// ---
+		//   - name: deploy-child
+		//    kind: KudoOperator
+		//    spec:
+		//      package: "../child-operator"
+		//
+		// will be updated as:
+		// ---
+		//   - name: deploy-child
+		//    kind: KudoOperator
+		//    spec:
+		//      appVersion: 3.2.1
+		//      operatorVersion: 0.0.1
+		//      package: child
+		//
+		// so that the KUDO controller to be able to grab the right 'OperatorVersion' resources from the cluster
+		// when the task is executed.
+		err = updateResolvedKudoOperatorTask(childTask.Name,
+			parent.OperatorVersion,
+			childResolved.Resources.Operator.Name,
+			childResolved.Resources.OperatorVersion.Spec.Version,
+			childResolved.Resources.OperatorVersion.Spec.AppVersion)
+		if err != nil {
+			return err
+		}
+
 		childDependency := Dependency{
-			Resources:   *childRes,
-			PackageName: childTask.Spec.KudoOperatorTaskSpec.Package,
+			Resources: *childResolved.Resources,
 		}
 
 		newPackage := false
 		childIndex := indexOf(dependencies, &childDependency)
 		if childIndex == -1 {
-			clog.V(2).Printf("Adding new dependency %s", childRes.OperatorVersion.FullyQualifiedName())
+			clog.V(2).Printf("Adding new dependency %s", childResolved.Resources.OperatorVersion.FullyQualifiedName())
 			newPackage = true
 
 			*dependencies = append(*dependencies, childDependency)
@@ -146,22 +147,33 @@ func dependencyWalk(
 
 		if !graph.Acyclic(g) {
 			return fmt.Errorf(
-				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childRes.OperatorVersion.FullyQualifiedName())
+				"cyclic package dependency found when adding package %s -> %s", parent.OperatorVersion.FullyQualifiedName(), childResolved.Resources.OperatorVersion.FullyQualifiedName())
 		}
 
 		// We only need to walk the dependencies if the package is new
 		if newPackage {
-			var childOperatorDirectory *string
-			if isRelativePackage {
-				childOperatorDirectory = &childPackageName
-			}
-			if err := dependencyWalk(dependencies, g, *childRes, childIndex, resolver, childOperatorDirectory); err != nil {
+			if err := dependencyWalk(dependencies, g, childResolved.Resources, childIndex, childResolved.DependenciesResolver); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+// updateResolvedKudoOperatorTask method updates all 'KudoOperatorTasks' of an OperatorVersion by setting their 'Package' and
+// 'OperatorVersion' fields to the already resolved packages. This is done for the KUDO controller to be able to grab
+// the right 'OperatorVersion' resources from the cluster when the corresponding task is executed.
+func updateResolvedKudoOperatorTask(taskName string, parent *kudoapi.OperatorVersion, operatorName, operatorVersion, appVersion string) error {
+	for i, tt := range parent.Spec.Tasks {
+		if tt.Name == taskName {
+			parent.Spec.Tasks[i].Spec.KudoOperatorTaskSpec.Package = operatorName
+			parent.Spec.Tasks[i].Spec.KudoOperatorTaskSpec.OperatorVersion = operatorVersion
+			parent.Spec.Tasks[i].Spec.KudoOperatorTaskSpec.AppVersion = appVersion
+			return nil
+		}
+	}
+	return fmt.Errorf("failed to update resolved task %s of the operator %s with resolved data", taskName, parent.FullyQualifiedName())
 }
 
 // indexOf method searches for the dependency in dependencies that has the same
@@ -188,20 +200,4 @@ func fullyQualifiedName(kt kudoapi.KudoOperatorTaskSpec) string {
 	}
 
 	return fmt.Sprintf("Operator: %q, OperatorVersion: %q, AppVersion %q", kt.Package, operatorVersion, appVersion)
-}
-
-func operatorAbsPath(path string) (*string, error) {
-	fs := afero.NewOsFs()
-
-	ok, err := afero.IsDir(fs, path)
-	// force local operators usage to be either absolute or express a relative path
-	// or put another way, a name can NOT be mistaken to be the name of a local folder
-	if ok && filepath.Base(path) != path {
-		abs, err := filepath.Abs(path)
-		if err == nil {
-			return &abs, nil
-		}
-		return nil, fmt.Errorf("failed to detect an absolute path for %q: %v", path, err)
-	}
-	return nil, fmt.Errorf("%q is not a valid directory: %v", path, err)
 }

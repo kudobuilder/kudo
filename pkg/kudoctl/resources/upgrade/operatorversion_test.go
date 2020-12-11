@@ -181,7 +181,6 @@ func Test_UpgradeOperatorVersionWithDependency(t *testing.T) {
 				},
 			},
 		},
-		PackageName: "dependency",
 	}
 
 	c := kudo.NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())

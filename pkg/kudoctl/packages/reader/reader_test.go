@@ -34,18 +34,17 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 		t.Run(fmt.Sprintf("%s-from-%s", tt.name, tt.path), func(t *testing.T) {
 			var err error
-			var pr *packages.Resources
+			var got *packages.Resources
 
 			if strings.HasSuffix(tt.path, ".tgz") {
-				pr, err = ReadTar(fs, tt.path)
+				got, err = ResourcesFromTar(fs, afero.NewMemMapFs(), tt.path)
 			} else {
-				pr, err = ResourcesFromDir(fs, tt.path)
+				got, err = ResourcesFromDir(fs, tt.path)
 			}
 
 			assert.NoError(t, err, "unexpected error while reading the package")
-			actual := pr
 
-			actual.Instance.ObjectMeta.Name = tt.instanceName
+			got.Instance.ObjectMeta.Name = tt.instanceName
 			golden, err := loadResourcesFromPath(tt.goldenFiles)
 			if err != nil {
 				t.Errorf("Found unexpected error when loading golden files: %v", err)
@@ -53,14 +52,14 @@ func TestReadFileSystemPackage(t *testing.T) {
 
 			// we need to sort here because current yaml parsing is not preserving the order of fields
 			// at the same time, the deep library we use for equality does not support ignoring order
-			sort.Slice(actual.OperatorVersion.Spec.Parameters, func(i, j int) bool {
-				return actual.OperatorVersion.Spec.Parameters[i].Name < actual.OperatorVersion.Spec.Parameters[j].Name
+			sort.Slice(got.OperatorVersion.Spec.Parameters, func(i, j int) bool {
+				return got.OperatorVersion.Spec.Parameters[i].Name < got.OperatorVersion.Spec.Parameters[j].Name
 			})
 			sort.Slice(golden.OperatorVersion.Spec.Parameters, func(i, j int) bool {
 				return golden.OperatorVersion.Spec.Parameters[i].Name < golden.OperatorVersion.Spec.Parameters[j].Name
 			})
 
-			assert.Equal(t, golden, actual)
+			assert.Equal(t, golden, got)
 		})
 	}
 }

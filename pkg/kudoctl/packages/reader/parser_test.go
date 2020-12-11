@@ -43,8 +43,6 @@ func TestParsePackageFile(t *testing.T) {
 		{filePath: "templates/some/nested/template2.yaml", isTemplate: true, fileContent: "not-empty"},
 		{filePath: "./templates/some-template.yaml", isTemplate: true, fileContent: "not-empty"},
 		{filePath: "./templates/with/subdirectory/some-template.yaml", isTemplate: true, fileContent: "not-empty"},
-		{filePath: "templates_without_path.yaml", expectedError: errors.New("unexpected file when reading package from filesystem: templates_without_path.yaml"), fileContent: "not-empty"},
-		{filePath: "invalid.yaml", expectedError: errors.New("unexpected file when reading package from filesystem: invalid.yaml")},
 		{filePath: "operator.yaml", isOperator: true, expectedError: errors.New("failed to parse yaml into valid operator operator.yaml")},
 	}
 

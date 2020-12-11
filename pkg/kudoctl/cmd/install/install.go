@@ -2,12 +2,14 @@ package install
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/afero"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages/install"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
 	deps "github.com/kudobuilder/kudo/pkg/kudoctl/resources/dependencies"
@@ -80,11 +82,16 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 
 	clog.V(3).Printf("getting operator package")
 
-	var resolver pkgresolver.Resolver
+	var resolver packages.Resolver
 	if options.InCluster {
 		resolver = pkgresolver.NewInClusterResolver(kudoClient, settings.Namespace)
 	} else {
-		resolver = pkgresolver.New(repoClient)
+		wd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("failed to get current working directory: %v", err)
+		}
+
+		resolver = pkgresolver.NewPackageResolver(repoClient, wd)
 	}
 
 	pr, err := resolver.Resolve(operatorArgument, options.AppVersion, options.OperatorVersion)
@@ -92,7 +99,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		return fmt.Errorf("failed to resolve operator package for: %s %w", operatorArgument, err)
 	}
 
-	dependencies, err := deps.Resolve(operatorArgument, pr.OperatorVersion, resolver)
+	dependencies, err := deps.Resolve(pr.Resources.OperatorVersion, pr.DependenciesResolver)
 	if err != nil {
 		return err
 	}
@@ -111,7 +118,7 @@ func installOperator(operatorArgument string, options *Options, fs afero.Fs, set
 		kudoClient,
 		options.InstanceName,
 		settings.Namespace,
-		*pr,
+		*pr.Resources,
 		options.Parameters,
 		dependencies,
 		installOpts)

@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -103,18 +104,23 @@ func runUpgrade(args []string, options *options, fs afero.Fs, settings *env.Sett
 		return fmt.Errorf("could not build operator repository: %w", err)
 	}
 
-	resolver := pkgresolver.New(repository)
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %v", err)
+	}
+
+	resolver := pkgresolver.NewPackageResolver(repository, wd)
 	pr, err := resolver.Resolve(packageToUpgrade, options.AppVersion, options.OperatorVersion)
 	if err != nil {
 		return fmt.Errorf("failed to resolve operator package for: %s: %w", packageToUpgrade, err)
 	}
 
-	pr.OperatorVersion.SetNamespace(settings.Namespace)
+	pr.Resources.OperatorVersion.SetNamespace(settings.Namespace)
 
-	dependencies, err := deps.Resolve(packageToUpgrade, pr.OperatorVersion, resolver)
+	dependencies, err := deps.Resolve(pr.Resources.OperatorVersion, pr.DependenciesResolver)
 	if err != nil {
 		return err
 	}
 
-	return upgrade.OperatorVersion(kc, pr.OperatorVersion, options.InstanceName, options.Parameters, dependencies)
+	return upgrade.OperatorVersion(kc, pr.Resources.OperatorVersion, options.InstanceName, options.Parameters, dependencies)
 }

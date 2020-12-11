@@ -2,6 +2,7 @@ package dependencies
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,12 +23,13 @@ type nameResolver struct {
 func (resolver nameResolver) Resolve(
 	name string,
 	appVersion string,
-	operatorVersion string) (*packages.Resources, error) {
+	operatorVersion string) (*packages.PackageScope, error) {
 	for _, pr := range resolver.Prs {
+		pr := pr
 		if pr.Operator.Name == name &&
 			(operatorVersion == "" || pr.OperatorVersionString() == operatorVersion) &&
 			(appVersion == "" || pr.AppVersionString() == appVersion) {
-			return &pr, nil
+			return &packages.PackageScope{Resources: &pr, DependenciesResolver: resolver}, nil
 		}
 	}
 
@@ -222,8 +224,7 @@ func TestResolve(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := nameResolver{tt.prs}
-			operatorArg := tt.prs[0].OperatorVersion.Name
-			got, err := Resolve(operatorArg, tt.prs[0].OperatorVersion, resolver)
+			got, err := Resolve(tt.prs[0].OperatorVersion, resolver)
 
 			assert.Equal(t, err == nil, tt.wantErr == "")
 
@@ -242,64 +243,40 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func Test_isLocalDirPackage(t *testing.T) {
+func TestResolveLocalDependencies(t *testing.T) {
 	tests := []struct {
-		name        string
-		path        string
-		wantNilPath bool
-		wantErr     bool
+		path string
 	}{
-		{
-			name:        "./",
-			path:        "./",
-			wantNilPath: false,
-			wantErr:     false,
-		},
-		{
-			name:        "../install",
-			path:        "../install",
-			wantNilPath: false,
-			wantErr:     false,
-		},
-		{
-			name:        "./some-fake-path",
-			path:        "./some-fake-path",
-			wantNilPath: true,
-			wantErr:     true,
-		},
-		{
-			name:        "./",
-			path:        "./resolve_test.go",
-			wantNilPath: true,
-			wantErr:     true,
-		},
+		{path: "./testdata/operator-with-dependencies/parent-operator"},
+		{path: "./testdata/operator-with-dependencies.tgz"},
 	}
+
+	wd, _ := os.Getwd()
+
+	var resolver = pkgresolver.NewPackageResolver(nil, wd)
+
 	for _, tt := range tests {
 		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			absPath, err := operatorAbsPath(tt.path)
-			assert.Equal(t, tt.wantErr, err != nil)
-			assert.Equal(t, tt.wantNilPath, absPath == nil)
+		t.Run(tt.path, func(t *testing.T) {
+			pr, err := resolver.Resolve(tt.path, "", "")
+			assert.NoError(t, err, "failed to resolve operator package for %s", tt.path)
+			assert.NotNil(t, pr, "failed to resolve operator %s", tt.path)
+
+			dependencies, err := Resolve(pr.Resources.OperatorVersion, pr.DependenciesResolver)
+			assert.Equal(t, "child", pr.Resources.OperatorVersion.Spec.Tasks[0].Spec.KudoOperatorTaskSpec.Package, "expecting the KudoOperatorTask to have resolved child operator name")
+			assert.Equal(t, "0.0.1", pr.Resources.OperatorVersion.Spec.Tasks[0].Spec.KudoOperatorTaskSpec.OperatorVersion, "expecting the KudoOperatorTask to have resolved child operator version")
+			assert.Equal(t, "3.2.1", pr.Resources.OperatorVersion.Spec.Tasks[0].Spec.KudoOperatorTaskSpec.AppVersion, "expecting the KudoOperatorTask to have resolved child operator app version")
+
+			assert.NoError(t, err, "failed to resolve dependencies for %s", tt.path)
+			assert.Equal(t, len(dependencies), 1, "expecting to find child-operator dependency")
+
+			assert.NotNil(t, dependencies[0].Operator, "expecting to find child-operator OperatorVersion resource")
+			assert.NotNil(t, dependencies[0].OperatorVersion, "expecting to find child-operator OperatorVersion resource")
+			assert.NotNil(t, dependencies[0].Instance, "expecting to find child-operator OperatorVersion resource")
+
+			assert.Equal(t, dependencies[0].Operator.Name, "child")
+			assert.Equal(t, dependencies[0].OperatorVersion.Name, kudoapi.OperatorVersionName("child", "3.2.1", "0.0.1"))
+			assert.Equal(t, dependencies[0].Instance.Name, kudoapi.OperatorInstanceName("child"))
 		})
 	}
-}
-
-func TestResolveLocalDependencies(t *testing.T) {
-	var resolver = pkgresolver.NewLocal()
-	var operatorArgument = "./testdata/operator-with-dependencies/parent-operator"
-
-	pr, err := resolver.Resolve(operatorArgument, "", "")
-	assert.NoError(t, err, "failed to resolve operator package for %s", operatorArgument)
-
-	dependencies, err := Resolve(operatorArgument, pr.OperatorVersion, resolver)
-	assert.NoError(t, err, "failed to resolve dependencies for %s", operatorArgument)
-	assert.Equal(t, len(dependencies), 1, "expecting to find child-operator dependency")
-
-	assert.NotNil(t, dependencies[0].Operator, "expecting to find child-operator OperatorVersion resource")
-	assert.NotNil(t, dependencies[0].OperatorVersion, "expecting to find child-operator OperatorVersion resource")
-	assert.NotNil(t, dependencies[0].Instance, "expecting to find child-operator OperatorVersion resource")
-
-	assert.Equal(t, dependencies[0].Operator.Name, "child")
-	assert.Equal(t, dependencies[0].OperatorVersion.Name, kudoapi.OperatorVersionName("child", "", "0.0.1"))
-	assert.Equal(t, dependencies[0].Instance.Name, kudoapi.OperatorInstanceName("child"))
 }
