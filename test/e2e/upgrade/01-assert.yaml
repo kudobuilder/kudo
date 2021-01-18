@@ -3,9 +3,6 @@ kind: Instance
 metadata:
   name: upgrade-operator
 status:
-  conditions:
-    - type: Ready
-      status: "True"
   planStatus:
     deploy:
       status: COMPLETE

@@ -532,29 +532,36 @@ func ensurePlanStatusInitialized(i *kudoapi.Instance, ov *kudoapi.OperatorVersio
 	}
 
 	for planName, plan := range ov.Spec.Plans {
-		if _, ok := i.Status.PlanStatus[planName]; !ok {
-			planStatus := kudoapi.PlanStatus{
+		planStatus, ok := i.Status.PlanStatus[planName]
+		if !ok {
+			planStatus = kudoapi.PlanStatus{
 				Name:   planName,
 				Status: kudoapi.ExecutionNeverRun,
 				Phases: make([]kudoapi.PhaseStatus, 0),
 			}
-			for _, phase := range plan.Phases {
-				phaseStatus := kudoapi.PhaseStatus{
+		}
+		for _, phase := range plan.Phases {
+			phaseStatus := planStatus.Phase(phase.Name)
+			if phaseStatus == nil {
+				planStatus.Phases = append(planStatus.Phases, kudoapi.PhaseStatus{
 					Name:   phase.Name,
 					Status: kudoapi.ExecutionNeverRun,
 					Steps:  make([]kudoapi.StepStatus, 0),
-				}
-				for _, step := range phase.Steps {
-					stepStatus := kudoapi.StepStatus{
+				})
+				phaseStatus = &planStatus.Phases[len(planStatus.Phases)-1]
+			}
+			for _, step := range phase.Steps {
+				stepStatus := phaseStatus.Step(step.Name)
+				if stepStatus == nil {
+					phaseStatus.Steps = append(phaseStatus.Steps, kudoapi.StepStatus{
 						Name:   step.Name,
 						Status: kudoapi.ExecutionNeverRun,
-					}
-					phaseStatus.Steps = append(phaseStatus.Steps, stepStatus)
+					})
 				}
-				planStatus.Phases = append(planStatus.Phases, phaseStatus)
 			}
-			i.Status.PlanStatus[planName] = planStatus
 		}
+		// We might have updated the plan status, so set it just to make sure
+		i.Status.PlanStatus[planName] = planStatus
 	}
 }
 

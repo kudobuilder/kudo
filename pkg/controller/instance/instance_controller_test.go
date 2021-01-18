@@ -575,6 +575,57 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "a new phase is correctly initialized",
+			i:    instance,
+			ov: func() *kudoapi.OperatorVersion {
+				modifiedOv := ov.DeepCopy()
+				pln := modifiedOv.Spec.Plans["deploy"]
+				pln.Phases = append(pln.Phases, kudoapi.Phase{
+					Name: "newphase",
+					Steps: []kudoapi.Step{
+						{
+							Name:  "additionalstep",
+							Tasks: []string{},
+						},
+					},
+				})
+				modifiedOv.Spec.Plans["deploy"] = pln
+				return modifiedOv
+			}(),
+			want: kudoapi.InstanceStatus{
+				PlanStatus: map[string]kudoapi.PlanStatus{
+					"deploy": {
+						Name:   "deploy",
+						Status: kudoapi.ExecutionNeverRun,
+						UID:    "",
+						Phases: []kudoapi.PhaseStatus{
+							{
+								Name:   "phase",
+								Status: kudoapi.ExecutionNeverRun,
+								Steps: []kudoapi.StepStatus{
+									{
+										Name:   "step",
+										Status: kudoapi.ExecutionNeverRun,
+									},
+								},
+							},
+							{
+								Name:   "newphase",
+								Status: kudoapi.ExecutionNeverRun,
+								Steps: []kudoapi.StepStatus{
+									{
+										Name:   "additionalstep",
+										Status: kudoapi.ExecutionNeverRun,
+									},
+								},
+							},
+						},
+					},
+					"backup": backupStatus,
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
