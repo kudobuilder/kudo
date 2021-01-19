@@ -540,26 +540,37 @@ func ensurePlanStatusInitialized(i *kudoapi.Instance, ov *kudoapi.OperatorVersio
 				Phases: make([]kudoapi.PhaseStatus, 0),
 			}
 		}
+		// We fully rebuild the phase status here to make sure that newly
+		// added phases have a status in the correct order
+		newPhaseStatus := make([]kudoapi.PhaseStatus, 0)
 		for _, phase := range plan.Phases {
 			phaseStatus := planStatus.Phase(phase.Name)
 			if phaseStatus == nil {
-				planStatus.Phases = append(planStatus.Phases, kudoapi.PhaseStatus{
+				phaseStatus = &kudoapi.PhaseStatus{
 					Name:   phase.Name,
 					Status: kudoapi.ExecutionNeverRun,
 					Steps:  make([]kudoapi.StepStatus, 0),
-				})
-				phaseStatus = &planStatus.Phases[len(planStatus.Phases)-1]
+				}
 			}
+
+			// Same here, full rebuild of the slice, so newly added steps
+			// have a matching status
+			newStepStatus := make([]kudoapi.StepStatus, 0)
 			for _, step := range phase.Steps {
 				stepStatus := phaseStatus.Step(step.Name)
 				if stepStatus == nil {
-					phaseStatus.Steps = append(phaseStatus.Steps, kudoapi.StepStatus{
+					stepStatus = &kudoapi.StepStatus{
 						Name:   step.Name,
 						Status: kudoapi.ExecutionNeverRun,
-					})
+					}
 				}
+				newStepStatus = append(newStepStatus, *stepStatus)
 			}
+			phaseStatus.Steps = newStepStatus
+			newPhaseStatus = append(newPhaseStatus, *phaseStatus)
 		}
+		planStatus.Phases = newPhaseStatus
+
 		// We might have updated the plan status, so set it just to make sure
 		i.Status.PlanStatus[planName] = planStatus
 	}

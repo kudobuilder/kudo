@@ -577,7 +577,7 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 		},
 		{
 			name: "a new phase is correctly initialized",
-			i:    instance,
+			i:    instance.DeepCopy(),
 			ov: func() *kudoapi.OperatorVersion {
 				modifiedOv := ov.DeepCopy()
 				pln := modifiedOv.Spec.Plans["deploy"]
@@ -616,6 +616,48 @@ func Test_ensurePlanStatusInitialized(t *testing.T) {
 								Steps: []kudoapi.StepStatus{
 									{
 										Name:   "additionalstep",
+										Status: kudoapi.ExecutionNeverRun,
+									},
+								},
+							},
+						},
+					},
+					"backup": backupStatus,
+				},
+			},
+		},
+		{
+			name: "a new step is correctly initialized",
+			i:    instance.DeepCopy(),
+			ov: func() *kudoapi.OperatorVersion {
+				modifiedOv := ov.DeepCopy()
+				pln := modifiedOv.Spec.Plans["deploy"]
+				pln.Phases[0].Steps = append([]kudoapi.Step{
+					{
+						Name:  "additionalstep",
+						Tasks: []string{},
+					},
+				}, pln.Phases[0].Steps...)
+				modifiedOv.Spec.Plans["deploy"] = pln
+				return modifiedOv
+			}(),
+			want: kudoapi.InstanceStatus{
+				PlanStatus: map[string]kudoapi.PlanStatus{
+					"deploy": {
+						Name:   "deploy",
+						Status: kudoapi.ExecutionNeverRun,
+						UID:    "",
+						Phases: []kudoapi.PhaseStatus{
+							{
+								Name:   "phase",
+								Status: kudoapi.ExecutionNeverRun,
+								Steps: []kudoapi.StepStatus{
+									{
+										Name:   "additionalstep",
+										Status: kudoapi.ExecutionNeverRun,
+									},
+									{
+										Name:   "step",
 										Status: kudoapi.ExecutionNeverRun,
 									},
 								},
