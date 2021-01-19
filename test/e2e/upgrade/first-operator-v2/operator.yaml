@@ -18,6 +18,11 @@ tasks:
     spec:
       resources:
         - configmap.yaml
+  - name: newstep
+    kind: Apply
+    spec:
+      resources:
+        - configmap.yaml
 plans:
   deploy:
     strategy: serial
@@ -31,6 +36,9 @@ plans:
       - name: main
         strategy: parallel
         steps:
+          - name: prependstep
+            tasks:
+              - newstep
           - name: everything
             tasks:
               - app
