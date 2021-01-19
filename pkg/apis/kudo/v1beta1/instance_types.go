@@ -116,6 +116,16 @@ func (s *StepStatus) SetWithMessage(status ExecutionStatus, message string) {
 	s.Message = message
 }
 
+// Step returns the StepStatus with the given name, or nil if no such step status exists
+func (s *PhaseStatus) Step(name string) *StepStatus {
+	for _, stepStatus := range s.Steps {
+		if stepStatus.Name == name {
+			return &stepStatus
+		}
+	}
+	return nil
+}
+
 func (s *PhaseStatus) Set(status ExecutionStatus) {
 	s.Status = status
 	s.Message = ""
@@ -124,6 +134,16 @@ func (s *PhaseStatus) Set(status ExecutionStatus) {
 func (s *PhaseStatus) SetWithMessage(status ExecutionStatus, message string) {
 	s.Status = status
 	s.Message = message
+}
+
+// Step returns the PhaseStatus with the given name, or nil if no such phase status exists
+func (s *PlanStatus) Phase(name string) *PhaseStatus {
+	for _, phaseStatus := range s.Phases {
+		if phaseStatus.Name == name {
+			return &phaseStatus
+		}
+	}
+	return nil
 }
 
 func (s *PlanStatus) Set(status ExecutionStatus) {
