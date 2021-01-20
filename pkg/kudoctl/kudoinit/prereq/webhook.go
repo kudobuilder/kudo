@@ -111,6 +111,10 @@ func (k *KudoWebHook) verifyWithCertManager(client *kube.Client, result *verifie
 	if err := k.validateCertManagerInstallation(client, result); err != nil {
 		return err
 	}
+	if !result.IsValid() {
+		return nil
+	}
+
 	if err := validateUnstructuredInstallation(client.DynamicClient, k.issuer, result); err != nil {
 		return err
 	}
