@@ -1,7 +1,7 @@
 # this is a test covering regression described in #1596
 # there was a race in apply-delete-apply where cache was not invalidated between delete and second apply
 # as a result configmap did not exist at the end of plan
-apiVersion: kudo.dev/v1beta1
+apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
   - command: kubectl kudo install --instance configmap-instance ./operator
