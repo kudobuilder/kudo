@@ -37,13 +37,16 @@ func isJobTerminallyFailed(job *batchv1.Job) (bool, string, error) {
 // The returned msg is optional and should reflect the terminal state in a human readable form and potential reason.
 // If the returned error is non-nil, the other returned values can be undefined and should not be used.
 // This is a generic function and works on all resource types.
-func IsDeleted(client client.Client, discovery discovery.CachedDiscoveryInterface, obj runtime.Object) (deleted bool, msg string, err error) {
+func IsDeleted(client client.Client, discovery discovery.CachedDiscoveryInterface, obj client.Object) (deleted bool, msg string, err error) {
 	key, err := resource.ObjectKeyFromObject(obj, discovery)
 	if err != nil {
 		return false, "", fmt.Errorf("failed to get object key from object: %v", err)
 	}
-	newObj := obj.DeepCopyObject()
-	err = client.Get(context.TODO(), key, newObj)
+	existing := &unstructured.Unstructured{}
+	existing.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
+	existing.SetName(obj.GetName())
+	existing.SetNamespace(obj.GetNamespace())
+	err = client.Get(context.TODO(), key, existing)
 	if err == nil {
 		// Object was retrieved without error - not deleted
 		return false, fmt.Sprintf("%s/%s is not deleted", key.Namespace, key.Name), nil

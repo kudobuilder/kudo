@@ -3,8 +3,7 @@ package task
 import (
 	"errors"
 	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
 	"github.com/kudobuilder/kudo/pkg/engine/renderer"
@@ -39,8 +38,8 @@ func render(resourceNames []string, ctx Context) (map[string]string, error) {
 }
 
 // convert takes a map of rendered yaml templates and converts them to k8s objects
-func convert(rendered map[string]string) ([]runtime.Object, error) {
-	objs := make([]runtime.Object, 0, len(rendered))
+func convert(rendered map[string]string) ([]client.Object, error) {
+	objs := make([]client.Object, 0, len(rendered))
 
 	for name, v := range rendered {
 		parsed, err := renderer.YamlToObject(v)
@@ -55,7 +54,7 @@ func convert(rendered map[string]string) ([]runtime.Object, error) {
 
 // enhance method takes a slice of rendered k8s objects, applies conventions using Enhancer and
 // returns a slice of enhanced k8s objects.
-func enhance(objs []runtime.Object, meta renderer.Metadata, enhancer renderer.Enhancer) ([]runtime.Object, error) {
+func enhance(objs []client.Object, meta renderer.Metadata, enhancer renderer.Enhancer) ([]client.Object, error) {
 	enhanced, err := enhancer.Apply(objs, meta)
 
 	switch {

@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +27,7 @@ func GetDiscoveryClient(mgr manager.Manager) (*discovery.DiscoveryClient, error)
 }
 
 // DeleteAndWait deletes the given runtime object and waits until it is fully deleted
-func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.DeleteOption) error {
+func DeleteAndWait(c client.Client, obj client.Object, options ...client.DeleteOption) error {
 	err := c.Delete(context.TODO(), obj, options...)
 
 	if err != nil {
@@ -44,13 +45,17 @@ func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.Delete
 }
 
 // WaitForDelete waits for the provided runtime object to be deleted from cluster
-func WaitForDelete(c client.Client, obj runtime.Object) error {
+func WaitForDelete(c client.Client, obj client.Object) error {
 	key := ObjectKey(obj)
 	clog.V(4).Printf("Waiting for obj %s/%s to be finally deleted", key.Namespace, key.Name)
 
 	// Wait for resources to be deleted.
 	return wait.PollImmediate(250*time.Millisecond, 30*time.Second, func() (done bool, err error) {
-		err = c.Get(context.TODO(), key, obj.DeepCopyObject())
+		existing := &unstructured.Unstructured{}
+		existing.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
+		existing.SetName(obj.GetName())
+		existing.SetNamespace(obj.GetNamespace())
+		err = c.Get(context.TODO(), key, existing)
 		clog.V(6).Printf("Fetched %s/%s to wait for delete: %v", key.Namespace, key.Name, err)
 
 		if err != nil && kerrors.IsNotFound(err) {

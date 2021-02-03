@@ -3,10 +3,10 @@ package renderer
 import (
 	"bytes"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/kubernetes/scheme"
 )
@@ -21,7 +21,7 @@ const yamlSeparator = "\n---"
 // The YAML input can be too large for the default scan token size used by these packages.
 // For more detail read: https://github.com/kudobuilder/kudo/pull/1400
 // TODO(av) could we use something else than a global scheme here? Should we somehow inject it?
-func YamlToObject(yaml string) (objs []runtime.Object, err error) {
+func YamlToObject(yaml string) (objs []client.Object, err error) {
 	yamls := strings.Split(yaml, yamlSeparator)
 	for _, y := range yamls {
 		if len(strings.TrimSpace(y)) == 0 {
@@ -46,7 +46,7 @@ func YamlToObject(yaml string) (objs []runtime.Object, err error) {
 				objs = append(objs, unstructuredObj)
 			}
 		} else {
-			objs = append(objs, obj)
+			objs = append(objs, obj.(client.Object))
 		}
 	}
 	return

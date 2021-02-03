@@ -104,17 +104,19 @@ func addLastAppliedConfigAnnotation(r runtime.Object) error {
 
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
-func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) {
-	applied := make([]runtime.Object, 0)
+func applyResources(rr []client.Object, ctx Context) ([]client.Object, error) {
+	applied := make([]client.Object, 0)
 
 	for _, r := range rr {
-		existing := r.DeepCopyObject()
-
 		key, err := resource.ObjectKeyFromObject(r, ctx.Discovery)
 		if err != nil {
 			return nil, err
 		}
 
+		existing := &unstructured.Unstructured{}
+		existing.SetGroupVersionKind(r.GetObjectKind().GroupVersionKind())
+		existing.SetName(r.GetName())
+		existing.SetNamespace(r.GetNamespace())
 		err = ctx.Client.Get(context.TODO(), key, existing)
 
 		switch {
@@ -148,7 +150,7 @@ func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) 
 	return applied, nil
 }
 
-func patchResource(modifiedObj, currentObj runtime.Object, ctx Context) error {
+func patchResource(modifiedObj client.Object, currentObj runtime.Object, ctx Context) error {
 
 	// Serialize current configuration
 	current, err := json.Marshal(currentObj)
@@ -239,11 +241,11 @@ func strategicThreeWayMergePatch(r runtime.Object, original, modified, current [
 	return patchData, nil
 }
 
-func isHealthy(ro []runtime.Object) error {
+func isHealthy(ro []client.Object) error {
 	for _, r := range ro {
 		err := isResourceHealthy(r)
 		if err != nil {
-			key, _ := client.ObjectKeyFromObject(r) // err not possible as all runtime.Objects have metadata
+			key := client.ObjectKeyFromObject(r) // err not possible as all runtime.Objects have metadata
 			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
 		}
 	}
