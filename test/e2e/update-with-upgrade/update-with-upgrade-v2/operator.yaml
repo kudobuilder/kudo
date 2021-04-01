@@ -1,0 +1,50 @@
+apiVersion: kudo.dev/v1beta1
+name: "update-with-upgrade"
+operatorVersion: "0.2.0"
+kubernetesVersion: 1.13.0
+tasks:
+  - name: deploy-configmap
+    kind: Apply
+    spec:
+      resources:
+        - configmap-deployed.yaml
+  - name: update-configmap
+    kind: Apply
+    spec:
+      resources:
+        - configmap-updated.yaml
+  - name: upgrade-configmap
+    kind: Apply
+    spec:
+      resources:
+        - configmap-upgraded.yaml
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: deploy-configmap
+        strategy: serial
+        steps:
+          - name: deploy-configmap
+            tasks:
+              - deploy-configmap
+  # This should not occur when upgrading the operator:
+  update:
+    strategy: serial
+    phases:
+      - name: update-configmap
+        strategy: serial
+        steps:
+          - name: update-configmap
+            tasks:
+              - update-configmap
+  # Instead, this should occur when upgrading the operator:
+  upgrade:
+    strategy: serial
+    phases:
+      - name: upgrade-configmap
+        strategy: serial
+        steps:
+          - name: upgrade-configmap
+            tasks:
+              - upgrade-configmap

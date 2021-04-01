@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test
+data:
+  # This field is used to determine the plan which created the config map
+  origin: update
+  # This field introduces a dependency on a parameter
+  foo: "{{ .Params.foo }}"

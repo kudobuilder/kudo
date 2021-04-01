@@ -1,0 +1,9 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: foo
+    required: true
+    default: "bar"
+  # NOTE: "bar" intentionally specifies no default,
+  # so that upgrade is impossible without setting the value.
+  - name: bar
+    required: true

@@ -1,0 +1,5 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl kudo upgrade --instance update-with-upgrade ./update-with-upgrade-v2 -p bar=baz
+    namespaced: true
