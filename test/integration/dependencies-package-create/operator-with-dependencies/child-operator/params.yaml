@@ -1,0 +1,6 @@
+apiVersion: kudo.dev/v1beta1
+parameters:
+  - name: deploy
+    description: Triggers the deploy plan
+    default: 1
+    trigger: deploy

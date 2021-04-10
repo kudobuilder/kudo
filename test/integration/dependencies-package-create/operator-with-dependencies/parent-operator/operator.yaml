@@ -1,0 +1,25 @@
+apiVersion: kudo.dev/v1beta1
+name: "parent"
+operatorVersion: "0.1.0"
+kubernetesVersion: 1.15.0
+maintainers:
+  - name: zen-dog
+    email: <your@email.com>
+url: https://kudo.dev
+tasks:
+  - name: deploy-child
+    kind: KudoOperator
+    spec:
+      package: "../child-operator"
+      parameterFile: child-params.yaml
+
+plans:
+  deploy:
+    strategy: serial
+    phases:
+      - name: main
+        strategy: parallel
+        steps:
+          - name: deploy
+            tasks:
+              - deploy-child

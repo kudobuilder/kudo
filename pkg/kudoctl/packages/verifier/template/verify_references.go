@@ -30,6 +30,12 @@ func (ReferenceVerifier) Verify(pf *packages.Files) verifier.Result {
 			resources = task.Spec.ResourceTaskSpec.Resources
 		case engtask.PipeTaskKind:
 			resources = append(resources, task.Spec.PipeTaskSpec.Pod)
+		case engtask.KudoOperatorTaskKind:
+			// param file is being stored in the templates folder, we need to make sure it's in here
+			// to not treat it as error
+			if task.Spec.KudoOperatorTaskSpec.ParameterFile != "" {
+				resources = append(resources, task.Spec.KudoOperatorTaskSpec.ParameterFile)
+			}
 		default:
 		}
 
