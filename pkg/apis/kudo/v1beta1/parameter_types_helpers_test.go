@@ -167,6 +167,17 @@ func TestValidateType(t *testing.T) {
 			pType:  IntegerValueType,
 		},
 		{
+			name:   "longAsString",
+			pValue: "432000000",
+			pType:  IntegerValueType,
+		},
+		{
+			name:        "longAsUnquotedNumber",
+			pValue:      float64(432000000),
+			pType:       IntegerValueType,
+			expectedErr: true,
+		},
+		{
 			name:   "float32",
 			pValue: float32(3.14),
 			pType:  NumberValueType,

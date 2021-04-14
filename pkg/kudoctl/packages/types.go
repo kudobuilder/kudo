@@ -109,6 +109,13 @@ func (p *Parameter) ValidateDefault() error {
 	return nil
 }
 
+func (p *Parameter) ValidateType() error {
+	if err := kudoapi.ValidateParameterType(p.Type); err != nil {
+		return fmt.Errorf("parameter \"%s\" has an invalid type: %v", p.Name, err)
+	}
+	return nil
+}
+
 func (p *Parameter) EnumValues() []interface{} {
 	if p.IsEnum() {
 		return *p.Enum

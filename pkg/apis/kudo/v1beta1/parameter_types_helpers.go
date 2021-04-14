@@ -85,6 +85,21 @@ func ValidateParameterValueForType(pType ParameterType, pValue interface{}) erro
 	return nil
 }
 
+func ValidateParameterType(pType ParameterType) error {
+	switch pType {
+	case "", // An empty parameter type defaults to "StringValue"
+		StringValueType,
+		IntegerValueType,
+		NumberValueType,
+		BooleanValueType,
+		ArrayValueType,
+		MapValueType:
+		return nil
+	default:
+		return fmt.Errorf("invalid type %s", pType)
+	}
+}
+
 func validateIntegerType(pValue interface{}) error {
 	switch v := pValue.(type) {
 	case int, int8, int16, int32, int64:
@@ -96,6 +111,8 @@ func validateIntegerType(pValue interface{}) error {
 		if err != nil {
 			return fmt.Errorf("type is %q but format of %q is invalid: %v", IntegerValueType, pValue, err)
 		}
+	case float32, float64:
+		return fmt.Errorf("type is %q but format of %s is invalid. Try using quotes around the number", IntegerValueType, pValue)
 	default:
 		return fmt.Errorf("type is %q but format of %s is invalid", IntegerValueType, pValue)
 	}

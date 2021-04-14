@@ -169,3 +169,26 @@ func TestMetadata(t *testing.T) {
 	assert.Equal(t, `parameter "InvalidAdvanced" is marked as advanced, but also as required and has no default. An advanced parameter must either be optional or have a default value`, res.Errors[1])
 	assert.Equal(t, `parameter "InvalidGroup" has a group "some/group" that is not defined in the group section`, res.Errors[2])
 }
+
+func TestTypes(t *testing.T) {
+	params := []packages.Parameter{
+		{Name: "InvalidType", Type: "long"},
+		{Name: "ValidEmptyType", Type: ""},
+		{Name: "ValidTypeInteger", Type: kudoapi.IntegerValueType},
+	}
+	paramFile := packages.ParamsFile{Parameters: params}
+	templates := make(map[string]string)
+
+	operator := packages.OperatorFile{}
+	pf := packages.Files{
+		Templates: templates,
+		Operator:  &operator,
+		Params:    &paramFile,
+	}
+	verifier := ParametersVerifier{}
+	res := verifier.Verify(&pf)
+
+	assert.Equal(t, 3, len(res.Warnings)) // NotUsed Warnings
+	assert.Equal(t, 1, len(res.Errors))
+	assert.Equal(t, `parameter "InvalidType" has an invalid type: invalid type long`, res.Errors[0])
+}
