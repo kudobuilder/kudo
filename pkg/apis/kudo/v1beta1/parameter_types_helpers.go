@@ -112,6 +112,7 @@ func validateIntegerType(pValue interface{}) error {
 			return fmt.Errorf("type is %q but format of %q is invalid: %v", IntegerValueType, pValue, err)
 		}
 	case float32, float64:
+		// This happens when a user defines a big number without quotes. The YAML parser then reads the value as a float...
 		return fmt.Errorf("type is %q but format of %s is invalid. Try using quotes around the number", IntegerValueType, pValue)
 	default:
 		return fmt.Errorf("type is %q but format of %s is invalid", IntegerValueType, pValue)
