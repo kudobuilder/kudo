@@ -217,7 +217,7 @@ func admitUpdate(old, new *kudoapi.Instance, ov, oldOv *kudoapi.OperatorVersion)
 		return nil, fmt.Errorf("plan %s does not exist", newPlan)
 	}
 
-	changedDefs, removedDefs, err := changedParameters(old.Spec.Parameters, new.Spec.Parameters, ov)
+	changedDefs, removedDefs, err := changedParameters(old.Spec.Parameters, new.Spec.Parameters, oldOv, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
 	}
@@ -229,8 +229,8 @@ func admitUpdate(old, new *kudoapi.Instance, ov, oldOv *kudoapi.OperatorVersion)
 		return nil, fmt.Errorf("failed to validate parameters for Instance %s/%s: %v", new.Namespace, new.Name, err)
 	}
 
-	parameterDefs := append(changedDefs, removedDefs...)
-	triggeredPlan, err := triggeredByParameterUpdate(parameterDefs, ov)
+	updatedParameterDefs := append(changedDefs, removedDefs...)
+	triggeredPlan, err := triggeredByParameterUpdate(updatedParameterDefs, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)
 	}
@@ -365,12 +365,23 @@ func triggeredByParameterUpdate(params []kudoapi.Parameter, ov *kudoapi.Operator
 }
 
 // changedParameters returns a list of parameter definitions for params which value changed or that were added from old to new
-// This does *not* include parameters which *definition* has changed in an OV upgrade but where the value has not changed!
-func changedParameters(old, new map[string]string, newOv *kudoapi.OperatorVersion) ([]kudoapi.Parameter, []kudoapi.Parameter, error) {
-	changed, removed := kudoapi.RichParameterDiff(old, new)
-	changedDefs, err := kudoapi.GetParamDefinitions(changed, newOv)
+// This does *not* include:
+// - parameters which *definition* has changed in an OV upgrade but where the value has not changed
+// - parameters that have been added in an OV upgrade
+func changedParameters(old, new map[string]string, oldOv, newOv *kudoapi.OperatorVersion) ([]kudoapi.Parameter, []kudoapi.Parameter, error) {
+	changedOrAdded, removed := kudoapi.RichParameterDiff(old, new)
+	changedOrAddedDefs, err := kudoapi.GetParamDefinitions(changedOrAdded, newOv)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Valid parameters not present in the old OV are not treated as changed.
+	changedDefs := []kudoapi.Parameter{}
+	for _, param := range changedOrAddedDefs {
+		param := param
+		if funk.Find(oldOv.Spec.Parameters, func(p kudoapi.Parameter) bool { return param.Name == p.Name }) != nil {
+			changedDefs = append(changedDefs, param)
+		}
 	}
 
 	// we ignore the error for missing OV parameter definitions for removed parameters. For once, this is a valid use-case when
