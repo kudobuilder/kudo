@@ -1,4 +1,4 @@
-apiVersion: kudo.dev/v1beta1
+apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
   - command: kubectl kudo init -v 4 --upgrade --kudo-image kudobuilder/controller:test --kudo-image-pull-policy IfNotPresent --unsafe-self-signed-webhook-ca --wait

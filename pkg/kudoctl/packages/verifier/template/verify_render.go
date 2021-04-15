@@ -3,6 +3,8 @@ package template
 import (
 	"fmt"
 
+	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
+
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/controller/instance"
 	"github.com/kudobuilder/kudo/pkg/engine"
@@ -50,14 +52,30 @@ func templateCompilable(pf *packages.Files) verifier.Result {
 			res.AddErrors(err.Error()) // err already mentions template name
 		}
 
-		// Try to parse rendered template as valid Kubernetes objects
-		_, err = renderer.YamlToObject(s)
-		if err != nil {
-			res.AddErrors(fmt.Sprintf("parsing rendered YAML from %s failed: %v", k, err))
+		// parameter file for KudoOperator task does not have to parse to kubernetes object
+		if !isParameterFile(k, pf) {
+			// Try to parse rendered template as valid Kubernetes objects
+			_, err = renderer.YamlToObject(s)
+			if err != nil {
+				res.AddErrors(fmt.Sprintf("parsing rendered YAML from %s failed: %v", k, err))
+			}
 		}
 	}
 
 	return res
+}
+
+func isParameterFile(k string, pf *packages.Files) bool {
+	for _, task := range pf.Operator.Tasks {
+		switch task.Kind {
+		case engtask.KudoOperatorTaskKind:
+			if k == task.Spec.KudoOperatorTaskSpec.ParameterFile {
+				return true
+			}
+		default:
+		}
+	}
+	return false
 }
 
 func collectPipes(pf *packages.Files) (map[string]string, error) {
