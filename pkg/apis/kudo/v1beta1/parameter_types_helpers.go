@@ -16,6 +16,10 @@ func (p *Parameter) IsRequired() bool {
 	return p.Required != nil && *p.Required
 }
 
+func (p *Parameter) IsAdvanced() bool {
+	return p.Advanced != nil && *p.Advanced
+}
+
 func (p *Parameter) IsEnum() bool {
 	return p.Enum != nil
 }

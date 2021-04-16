@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: zookeeper-validation
+spec:
+  template:
+    metadata:
+      name: "validation"
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: kubernetes-zookeeper
+        imagePullPolicy: {{ .Params.DOCKER_IMAGE_PULL_POLICY }}
+        image: "{{ .Params.DOCKER_IMAGE }}"
+        env:
+        - name: CONN
+          value: zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181
+        resources:
+          requests:
+            memory: "{{ $.Params.NODE_MEM_MIB }}Mi"
+            cpu: "{{ $.Params.NODE_CPU_MC }}m"
+          command:
+            - sh
+            - -c
+            - "/opt/zookeeper/bin/zkCLI.sh \
+              --server $CONN \
+              ls /"

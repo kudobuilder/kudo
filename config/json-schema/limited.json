@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$recursiveAnchor": true,
+  "$id": "https://kudo.dev/json-schema-limited",
+  "title": "Limited KUDO JSON-Schema",
+  "type": ["object", "boolean"],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "$ref": "#/$defs/simpleTypes"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "properties": {
+      "additionalProperties": {
+        "anyOf": [
+          { "$ref": "#/$defs/group" },
+          { "$ref": "#/$defs/parameter" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "required": { "$ref": "#/$defs/stringArray" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              { "$ref": "#/$defs/group" },
+              { "$ref": "#/$defs/parameter" }
+            ]
+          },
+          "default": {}
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "listName"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "default": true,
+        "required": { "$ref": "#/$defs/stringArray" },
+        "enum": {
+          "type": "array",
+          "items": true
+        },
+        "type": {
+          "anyOf": [
+            { "$ref": "#/$defs/simpleTypes" },
+            {
+              "type": "array",
+              "items": { "$ref": "#/$defs/simpleTypes" },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          ]
+        },
+        "advanced": {
+          "type":  "boolean",
+          "default": false
+        },
+        "hint": {
+          "type": "string"
+        },
+        "listName": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string"
+        },
+        "immutable": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "schemaArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$recursiveRef": "#" }
+    },
+    "simpleTypes": {
+      "enum": [
+        "array",
+        "boolean",
+        "integer",
+        "null",
+        "number",
+        "object",
+        "string"
+      ]
+    },
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true,
+      "default": []
+    }
+  }
+}

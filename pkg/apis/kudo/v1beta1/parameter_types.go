@@ -33,4 +33,15 @@ type Parameter struct {
 
 	// Defines a list of allowed values. If Default is set and Enum is not nil, the value must be in this list as well
 	Enum *[]string `json:"enum,omitempty"`
+
+	Group    string `json:"group,omitempty"`
+	Advanced *bool  `json:"advanced,omitempty"`
+	Hint     string `json:"hint,omitempty"`
+}
+
+type ParameterGroup struct {
+	Name        string `json:"name,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
+	Description string `json:"description,omitempty"`
+	Priority    int    `json:"prio,omitempty"`
 }

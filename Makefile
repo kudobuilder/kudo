@@ -177,6 +177,7 @@ ifeq (, $(shell which go-bindata))
 	go get github.com/go-bindata/go-bindata/v3/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata/v3)
 endif
 	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
+	go-bindata -pkg convert -o pkg/kudoctl/packages/convert/bindata.go -nometadata config/json-schema
 	./hack/update_codegen.sh
 
 .PHONY: generate-clean
@@ -197,7 +198,13 @@ endif
 # example: make update-golden
 # tests in update==true mode show as failures
 update-golden: ## Updates golden files
+ifdef _INTELLIJ_FORCE_SET_GOFLAGS
+	# Run tests from a Goland terminal. Goland already set '-mod=readonly'
+	go test ./pkg/... --update=true
+else
 	go test ./pkg/... -v -mod=readonly --update=true
+endif
+
 
 .PHONY: todo
 # Show to-do items per file.

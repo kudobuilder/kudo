@@ -1,3 +1,0 @@
-Name  	Default	Required	Immutable
-cpus  	0.25   	true    	false    
-memory	1Gi    	true    	false    

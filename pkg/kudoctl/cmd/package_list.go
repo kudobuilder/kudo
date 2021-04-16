@@ -54,7 +54,7 @@ func newPackageParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 		Long:    packageListDesc,
 		Example: packageListExamples,
 	}
-	cmd.AddCommand(newPackageListParamsCmd(fs, out))
+	cmd.AddCommand(newPackageListParamsCmd(&packageListParamsCmd{fs: fs, out: out}))
 	cmd.AddCommand(newPackageListPlansCmd(fs, out))
 	cmd.AddCommand(newPackageListTasksCmd(fs, out))
 

@@ -12,7 +12,9 @@ import (
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/generate"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/cmd/output"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	packageconvert "github.com/kudobuilder/kudo/pkg/kudoctl/packages/convert"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
 )
 
@@ -26,6 +28,8 @@ type packageListParamsCmd struct {
 	RepoName        string
 	AppVersion      string
 	OperatorVersion string
+	Output          output.Type
+	Format          string
 }
 
 type Parameters []kudoapi.Parameter
@@ -50,11 +54,16 @@ const (
 
   # show parameters from zookeeper (where zookeeper is name of package in KUDO repository)
   kubectl kudo package list parameters zookeeper`
+
+	outputFormatList       = "list"
+	outputFormatJSONSchema = "json-schema"
+
+	TypeJSONSchema     output.Type = "json-schema"
+	TypeJSONSchemaYaml output.Type = "json-schema-yaml"
 )
 
-func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
-	list := &packageListParamsCmd{fs: fs, out: out}
-
+func newPackageListParamsCmd(list *packageListParamsCmd) *cobra.Command {
+	var outputStr string
 	cmd := &cobra.Command{
 		Use:     "parameters [operator]",
 		Short:   "List operator parameters",
@@ -75,6 +84,23 @@ func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 			if err == nil {
 				list.pathOrName = args[0]
 			}
+
+			switch output.Type(outputStr) {
+			case "":
+				// Nothing to set
+			case output.TypeJSON, output.TypeYAML:
+				list.Output = output.Type(outputStr)
+				list.Format = outputFormatList
+			case TypeJSONSchema:
+				list.Output = output.TypeJSON
+				list.Format = outputFormatJSONSchema
+			case TypeJSONSchemaYaml:
+				list.Output = output.TypeYAML
+				list.Format = outputFormatJSONSchema
+			default:
+				return fmt.Errorf("output must be one of json, yaml, json-schema, json-schema-yaml")
+			}
+
 			return list.run(&Settings)
 		},
 	}
@@ -86,6 +112,7 @@ func newPackageListParamsCmd(fs afero.Fs, out io.Writer) *cobra.Command {
 	f.StringVar(&list.RepoName, "repo", "", "Name of repository configuration to use. (default defined by context)")
 	f.StringVar(&list.AppVersion, "app-version", "", "A specific app version in the official GitHub repo. (default to the most recent)")
 	f.StringVar(&list.OperatorVersion, "operator-version", "", "A specific operator version in the official GitHub repo. (default to the most recent)")
+	f.StringVarP(&outputStr, "output", "o", "", "Output format (json, yaml, json-schema or json-schema-yaml. Human readable if not specified)")
 
 	return cmd
 }
@@ -103,11 +130,18 @@ func (c *packageListParamsCmd) run(settings *env.Settings) error {
 		return err
 	}
 
-	if err := displayParamsTable(pr.OperatorVersion.Spec.Parameters, c.out, c.requiredOnly, c.namesOnly, c.descriptions); err != nil {
-		return err
+	switch c.Format {
+	case outputFormatList:
+		paramFile, err := packageconvert.ResourcesToParamFile(pr)
+		if err != nil {
+			return err
+		}
+		return output.WriteObject(paramFile, c.Output, c.out)
+	case outputFormatJSONSchema:
+		return packageconvert.WriteJSONSchema(pr.OperatorVersion, c.Output, c.out)
+	default:
+		return displayParamsTable(pr.OperatorVersion.Spec.Parameters, c.out, c.requiredOnly, c.namesOnly, c.descriptions)
 	}
-
-	return nil
 }
 
 func displayParamsTable(params Parameters, out io.Writer, printRequired, printNames, printDesc bool) error {
