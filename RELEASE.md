@@ -79,7 +79,7 @@ The token must grant full access to: `repo`, `write:packages`, `read:packages`.
    ![img](.github/new-branch.png)
 1. Send an announcement email to [kudobuilder@googlegroups.com](https://groups.google.com/forum/#!forum/kudobuilder) with the subject `[ANNOUNCE] Kudo $VERSION is released`
 1. Run `./hack/generate_krew.sh` and submit the generated `kudo.yaml` to https://github.com/kubernetes-sigs/krew-index/.
-1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/main/Makefile#L2) of operators repo
+1. Update KUDO_VERSION [in the Makefile](https://github.com/kudobuilder/operators/blob/master/Makefile#L2) of operators repo.
 
 **Note:** If there are issues with the release, any changes to the repository will result in it being considered "dirty" and not in a state to be released.
 It is possible outside of the standard release process to build a "snapshot" release using the following command: `goreleaser release --skip-publish --snapshot --rm-dist`
@@ -91,7 +91,7 @@ This process will create a `dist` folder with all the build artifacts. The chang
 
 ### Cutting a Release Branch
 
-As outlined above, when it is necessary to create a new release branch, it is necessary to update the [circle-ci config](https://github.com/kudobuilder/kudo/blob/main/.circle-ci/config.yml#L13) to test merges against the correct branch. It is necessary replace all references to `main` with the appropriate release branch.
+As outlined above, when it is necessary to create a new release branch, it is necessary to update the [circle-ci config](https://github.com/kudobuilder/kudo/blob/main/.circleci/config.yml) to test merges against the correct branch. It is necessary replace all references to `main` with the appropriate release branch.
 
 ### Cutting a Patch Release
 
