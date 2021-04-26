@@ -1,0 +1,53 @@
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: kudo
+spec:
+  version: "{{ .TagName }}"
+
+  shortDescription: Declaratively build, install, and run operators using KUDO.
+  homepage: https://kudo.dev/
+  description: |
+    The Kubernetes Universal Declarative Operator (KUDO) is a highly productive
+    toolkit for writing operators for Kubernetes. Using KUDO, you can deploy
+    your applications, give your users the tools they need to operate it, and
+    understand how it's behaving in their environments — all without a PhD in
+    Kubernetes.
+
+    Example usage:
+      Install kafka:
+        kubectl kudo install kafka
+      List installed operator instances:
+        kubectl kudo get instances
+    See the documentation for more information: https://kudo.dev/docs/
+  caveats: |
+    Requires the KUDO controller to be installed:
+      kubectl kudo init --wait
+  platforms:
+  - selector:
+      matchLabels:
+        os: "linux"
+        arch: "amd64"
+    {{addURIAndSha "https://github.com/kudobuilder/kudo/releases/download/{{ .TagName }}/kudo_{{ .TagName }}_linux_x86_64.tar.gz" .TagName }}
+    bin: "./kubectl-kudo"
+    files:
+    - from: "*"
+      to: "."
+  - selector:
+      matchLabels:
+        os: "linux"
+        arch: "386"
+    {{addURIAndSha "https://github.com/kudobuilder/kudo/releases/download/{{ .TagName }}/kudo_{{ .TagName }}_linux_i386.tar.gz" .TagName }}
+    bin: "./kubectl-kudo"
+    files:
+    - from: "*"
+      to: "."
+  - selector:
+      matchLabels:
+        os: "darwin"
+        arch: "amd64"
+    {{addURIAndSha "https://github.com/kudobuilder/kudo/releases/download/{{ .TagName }}/kudo_{{ .TagName }}_darwin_x86_64.tar.gz" .TagName }}
+    bin: "./kubectl-kudo"
+    files:
+    - from: "*"
+      to: "."
