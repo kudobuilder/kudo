@@ -2,4 +2,4 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
   - command: ./download-kudo.sh 0.11.1
-  - command: ./old-kudo init
+  - command: ./old-kudo init --wait
