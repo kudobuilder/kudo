@@ -9,8 +9,8 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 
@@ -51,7 +51,7 @@ func TestApplyTask_Run(t *testing.T) {
 			done:    true,
 			wantErr: false,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      renderer.Metadata{},
@@ -67,7 +67,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: true,
 			fatal:   true,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -84,7 +84,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: true,
 			fatal:   true,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &fatalErrorEnhancer{},
 				Meta:      meta,
@@ -101,7 +101,7 @@ func TestApplyTask_Run(t *testing.T) {
 			wantErr: true,
 			fatal:   false,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &transientErrorEnhancer{},
 				Meta:      meta,
@@ -117,7 +117,7 @@ func TestApplyTask_Run(t *testing.T) {
 			done:    true,
 			wantErr: false,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -133,7 +133,7 @@ func TestApplyTask_Run(t *testing.T) {
 			done:    false,
 			wantErr: false,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -201,18 +201,18 @@ func resourceAsString(resource metav1.Object) string {
 
 type testEnhancer struct{}
 
-func (k *testEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+func (k *testEnhancer) Apply(objs []client.Object, metadata renderer.Metadata) ([]client.Object, error) {
 	return objs, nil
 }
 
 type fatalErrorEnhancer struct{}
 
-func (k *fatalErrorEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+func (k *fatalErrorEnhancer) Apply(objs []client.Object, metadata renderer.Metadata) ([]client.Object, error) {
 	return nil, fmt.Errorf("%wsomething fatally bad happens every time", engine.ErrFatalExecution)
 }
 
 type transientErrorEnhancer struct{}
 
-func (k *transientErrorEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+func (k *transientErrorEnhancer) Apply(objs []client.Object, metadata renderer.Metadata) ([]client.Object, error) {
 	return nil, fmt.Errorf("something transiently bad happens every time")
 }

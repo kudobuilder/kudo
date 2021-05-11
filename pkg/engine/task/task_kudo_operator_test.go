@@ -50,14 +50,16 @@ func Test_applyInstance(t *testing.T) {
 			name:    "creating a brand new instance is successful",
 			new:     instance,
 			ns:      namespace,
-			c:       fake.NewFakeClientWithScheme(scheme, operatorVersion),
+			c:       fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(operatorVersion).Build(),
 			wantErr: false,
 		},
 		{
-			name:    "patching an existing instance with the same spec is successful",
-			new:     instance,
-			ns:      namespace,
-			c:       fake.NewFakeClientWithScheme(scheme, operatorVersion, instance),
+			name: "patching an existing instance with the same spec is successful",
+			new:  instance,
+			ns:   namespace,
+			// After https://github.com/kubernetes-sigs/controller-runtime/pull/1306
+			// fake client sets resourceVersion on objects passed into it.
+			c:       fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(operatorVersion, instance.DeepCopy()).Build(),
 			wantErr: false,
 		},
 		{
@@ -67,8 +69,10 @@ func Test_applyInstance(t *testing.T) {
 				c.Spec.Parameters = map[string]string{"foo": "bar"}
 				return c
 			}(),
-			ns:      namespace,
-			c:       fake.NewFakeClientWithScheme(scheme, operatorVersion, instance),
+			ns: namespace,
+			// After https://github.com/kubernetes-sigs/controller-runtime/pull/1306
+			// fake client sets resourceVersion on objects passed into it.
+			c:       fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(operatorVersion, instance.DeepCopy()).Build(),
 			wantErr: false,
 			subset: map[string]interface{}{
 				"spec": map[string]interface{}{
@@ -87,8 +91,10 @@ func Test_applyInstance(t *testing.T) {
 				}
 				return c
 			}(),
-			ns:      namespace,
-			c:       fake.NewFakeClientWithScheme(scheme, instance),
+			ns: namespace,
+			// After https://github.com/kubernetes-sigs/controller-runtime/pull/1306
+			// fake client sets resourceVersion on objects passed into it.
+			c:       fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(instance.DeepCopy()).Build(),
 			wantErr: false,
 			subset: map[string]interface{}{
 				"spec": map[string]interface{}{

@@ -6,8 +6,8 @@ import (
 
 	apps "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -24,15 +24,15 @@ func TestIsReady(t *testing.T) {
 	tests := []struct {
 		name    string
 		isReady bool
-		objs    []runtime.Object
+		objs    []client.Object
 	}{
-		{"no linked resources, ready", true, []runtime.Object{}},
-		{"one ready deployment", true, []runtime.Object{readyDeployment()}},
-		{"one not ready deployment", false, []runtime.Object{notReadyDeployment()}},
-		{"one ready and one not ready deployment", false, []runtime.Object{readyDeployment(), notReadyDeployment()}},
+		{"no linked resources, ready", true, []client.Object{}},
+		{"one ready deployment", true, []client.Object{readyDeployment()}},
+		{"one not ready deployment", false, []client.Object{notReadyDeployment()}},
+		{"one ready and one not ready deployment", false, []client.Object{readyDeployment(), notReadyDeployment()}},
 	}
 	for _, tt := range tests {
-		c := fake.NewFakeClientWithScheme(scheme.Scheme)
+		c := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		for _, obj := range tt.objs {
 			err := c.Create(context.TODO(), obj)
 			if err != nil {
@@ -46,7 +46,7 @@ func TestIsReady(t *testing.T) {
 	}
 }
 
-func readyDeployment() runtime.Object {
+func readyDeployment() client.Object {
 	var replicas int32 = 2
 	return &apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -69,7 +69,7 @@ func readyDeployment() runtime.Object {
 	}
 }
 
-func notReadyDeployment() runtime.Object {
+func notReadyDeployment() client.Object {
 	var replicas int32 = 2
 	return &apps.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
