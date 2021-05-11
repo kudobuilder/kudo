@@ -64,6 +64,7 @@ func (pe *PodExec) Run() error {
 			Version: "v1",
 			Kind:    "pods",
 		},
+		false,
 		pe.RestCfg,
 		codec)
 	if err != nil {

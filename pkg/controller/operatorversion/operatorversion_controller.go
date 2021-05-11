@@ -44,10 +44,10 @@ func (r *Reconciler) SetupWithManager(
 // and what is in the OperatorVersion.Spec.
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the operator version
 	operatorVersion := &kudoapi.OperatorVersion{}
-	err := r.Get(context.TODO(), request.NamespacedName, operatorVersion)
+	err := r.Get(ctx, request.NamespacedName, operatorVersion)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.
