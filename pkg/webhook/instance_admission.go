@@ -9,7 +9,7 @@ import (
 	"reflect"
 
 	"github.com/thoas/go-funk"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/rest"
@@ -46,10 +46,10 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 
 	switch req.Operation {
 
-	case v1beta1.Create:
+	case admissionv1.Create:
 		return handleCreate(ia, req)
 
-	case v1beta1.Update:
+	case admissionv1.Update:
 		// req has both old and new Instance objects
 		return handleUpdate(ia, req)
 
