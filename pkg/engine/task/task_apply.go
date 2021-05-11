@@ -104,17 +104,17 @@ func addLastAppliedConfigAnnotation(r runtime.Object) error {
 
 // apply method takes a slice of k8s object and applies them using passed client. If an object
 // doesn't exist it will be created. An already existing object will be patched.
-func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) {
-	applied := make([]runtime.Object, 0)
+func applyResources(rr []client.Object, ctx Context) ([]client.Object, error) {
+	applied := make([]client.Object, 0)
 
 	for _, r := range rr {
-		existing := r.DeepCopyObject()
-
 		key, err := resource.ObjectKeyFromObject(r, ctx.Discovery)
 		if err != nil {
 			return nil, err
 		}
 
+		existing := &unstructured.Unstructured{}
+		existing.SetGroupVersionKind(r.GetObjectKind().GroupVersionKind())
 		err = ctx.Client.Get(context.TODO(), key, existing)
 
 		switch {

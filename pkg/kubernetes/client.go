@@ -7,6 +7,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
@@ -44,13 +45,16 @@ func DeleteAndWait(c client.Client, obj client.Object, options ...client.DeleteO
 }
 
 // WaitForDelete waits for the provided runtime object to be deleted from cluster
-func WaitForDelete(c client.Client, obj runtime.Object) error {
+func WaitForDelete(c client.Client, obj client.Object) error {
 	key := ObjectKey(obj)
 	clog.V(4).Printf("Waiting for obj %s/%s to be finally deleted", key.Namespace, key.Name)
 
 	// Wait for resources to be deleted.
 	return wait.PollImmediate(250*time.Millisecond, 30*time.Second, func() (done bool, err error) {
-		err = c.Get(context.TODO(), key, obj.DeepCopyObject())
+		existing := &unstructured.Unstructured{}
+		existing.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
+
+		err = c.Get(context.TODO(), key, existing)
 		clog.V(6).Printf("Fetched %s/%s to wait for delete: %v", key.Namespace, key.Name, err)
 
 		if err != nil && kerrors.IsNotFound(err) {
