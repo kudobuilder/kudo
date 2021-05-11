@@ -239,11 +239,11 @@ func strategicThreeWayMergePatch(r runtime.Object, original, modified, current [
 	return patchData, nil
 }
 
-func isHealthy(ro []runtime.Object) error {
+func isHealthy(ro []client.Object) error {
 	for _, r := range ro {
 		err := isResourceHealthy(r)
 		if err != nil {
-			key, _ := client.ObjectKeyFromObject(r) // err not possible as all runtime.Objects have metadata
+			key := client.ObjectKeyFromObject(r)
 			return fmt.Errorf("object %s/%s is NOT healthy: %w", key.Namespace, key.Name, err)
 		}
 	}
