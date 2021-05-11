@@ -99,8 +99,8 @@ func (de *DefaultEnhancer) addDependenciesHashes(unstructuredObjs []*unstructure
 	return nil
 }
 
-func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstructured) ([]runtime.Object, error) {
-	objs := make([]runtime.Object, 0, len(unstructuredObjs))
+func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstructured) ([]client.Object, error) {
+	objs := make([]client.Object, 0, len(unstructuredObjs))
 	for _, uo := range unstructuredObjs {
 		obj, err := de.Scheme.New(uo.GroupVersionKind())
 		if err != nil {
@@ -113,7 +113,11 @@ func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstr
 			return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
 		}
 
-		objs = append(objs, obj)
+		clientObj, implementsClientObject := obj.(client.Object)
+		if !implementsClientObject {
+			return nil, fmt.Errorf("%wruntime.Object converted from unstructured does not implement client.Object", engine.ErrFatalExecution)
+		}
+		objs = append(objs, clientObj)
 	}
 	return objs, nil
 }
