@@ -19,7 +19,7 @@ import (
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
 type Enhancer interface {
-	Apply(objs []runtime.Object, metadata Metadata) ([]runtime.Object, error)
+	Apply(objs []client.Object, metadata Metadata) ([]client.Object, error)
 }
 
 // DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
@@ -31,7 +31,7 @@ type DefaultEnhancer struct {
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (de *DefaultEnhancer) Apply(sourceObjs []runtime.Object, metadata Metadata) ([]runtime.Object, error) {
+func (de *DefaultEnhancer) Apply(sourceObjs []client.Object, metadata Metadata) ([]client.Object, error) {
 	unstructuredObjs := make([]*unstructured.Unstructured, 0, len(sourceObjs))
 
 	for _, obj := range sourceObjs {

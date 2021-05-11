@@ -11,7 +11,7 @@ import (
 	crdclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
@@ -31,7 +31,7 @@ type Initializer struct {
 	Instance        *apiextv1.CustomResourceDefinition
 }
 
-// CRDs returns the runtime.Object representation of all the CRDs KUDO requires
+// CRDs returns the client.Object representation of all the CRDs KUDO requires
 func NewInitializer() Initializer {
 	return Initializer{
 		Operator:        embeddedCRD("config/crds/kudo.dev_operators.yaml"),
@@ -45,8 +45,8 @@ func (c Initializer) String() string {
 }
 
 // Resources returns all CRDs as array of runtime objects
-func (c Initializer) Resources() []runtime.Object {
-	return []runtime.Object{c.Operator, c.OperatorVersion, c.Instance}
+func (c Initializer) Resources() []client.Object {
+	return []client.Object{c.Operator, c.OperatorVersion, c.Instance}
 }
 
 // PreInstallVerify ensures that CRDs are not installed

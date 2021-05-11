@@ -3,7 +3,7 @@ package kudoinit
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
@@ -22,7 +22,7 @@ const (
 
 type Artifacter interface {
 	// Returns the artifacts that would be installed as runtime objects
-	Resources() []runtime.Object
+	Resources() []client.Object
 }
 
 type InstallVerifier interface {

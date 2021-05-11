@@ -26,7 +26,7 @@ func GetDiscoveryClient(mgr manager.Manager) (*discovery.DiscoveryClient, error)
 }
 
 // DeleteAndWait deletes the given runtime object and waits until it is fully deleted
-func DeleteAndWait(c client.Client, obj runtime.Object, options ...client.DeleteOption) error {
+func DeleteAndWait(c client.Client, obj client.Object, options ...client.DeleteOption) error {
 	err := c.Delete(context.TODO(), obj, options...)
 
 	if err != nil {

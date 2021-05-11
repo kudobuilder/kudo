@@ -148,7 +148,7 @@ func applyResources(rr []runtime.Object, ctx Context) ([]runtime.Object, error) 
 	return applied, nil
 }
 
-func patchResource(modifiedObj, currentObj runtime.Object, ctx Context) error {
+func patchResource(modifiedObj, currentObj client.Object, ctx Context) error {
 
 	// Serialize current configuration
 	current, err := json.Marshal(currentObj)
