@@ -6,7 +6,7 @@
       "name": "operators.kudo.dev",
       "creationTimestamp": null,
       "annotations": {
-        "controller-gen.kubebuilder.io/version": "v0.4.1"
+        "controller-gen.kubebuilder.io/version": "v0.4.2-0.20210129215148-557da250b856"
       }
     },
     "spec": {
@@ -103,7 +103,7 @@
       "name": "operatorversions.kudo.dev",
       "creationTimestamp": null,
       "annotations": {
-        "controller-gen.kubebuilder.io/version": "v0.4.1"
+        "controller-gen.kubebuilder.io/version": "v0.4.2-0.20210129215148-557da250b856"
       }
     },
     "spec": {
@@ -442,7 +442,7 @@
       "name": "instances.kudo.dev",
       "creationTimestamp": null,
       "annotations": {
-        "controller-gen.kubebuilder.io/version": "v0.4.1"
+        "controller-gen.kubebuilder.io/version": "v0.4.2-0.20210129215148-557da250b856"
       }
     },
     "spec": {
