@@ -45,7 +45,7 @@ builds:
 dockers:
   # always push a docker image on release for the .Tag version
   - dockerfile: Dockerfile.goreleaser
-    binaries:
+    ids:
       - manager
     goos: linux
     goarch: amd64
@@ -53,7 +53,7 @@ dockers:
       - "kudobuilder/controller:{{ .Tag }}"
   # only update the docker :latest for a full release (not RC)
   - dockerfile: Dockerfile.goreleaser
-    binaries:
+    ids:
       - manager
     goos: linux
     goarch: amd64
@@ -62,7 +62,7 @@ dockers:
     skip_push: auto
   # always push a docker image on release for the .Tag version
   - dockerfile: Dockerfile.goreleaser
-    binaries:
+    ids:
       - manager
     goos: linux
     goarch: arm64
@@ -70,7 +70,7 @@ dockers:
       - "kudobuilder/controller-arm64:{{ .Tag }}"
   # only update the docker :latest for a full release (not RC)
   - dockerfile: Dockerfile.goreleaser
-    binaries:
+    ids:
       - manager
     goos: linux
     goarch: arm64

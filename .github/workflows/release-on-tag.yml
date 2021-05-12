@@ -1,0 +1,28 @@
+name: KUDO Release Automation
+on:
+  push:
+    tags:
+     - '*'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+     - name: Checkout Code
+       uses: actions/checkout@v1
+     - name: Login to GitHub Package Registry
+       env:
+         DOCKER_USERNAME: ${{ secrets.DOCKER_GITHUB_USERNAME }}
+         DOCKER_PASSWORD: ${{ secrets.DOCKER_GITHUB_KEY }}
+         DOCKER_REGISTRY_URL: "docker.pkg.github.com"
+       run: docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY_URL}
+     - name: Download and Install Go
+       run: |
+         sudo snap install --classic --channel=1.15/stable go
+     - name: Download and Extract GoReleaser
+       run: |
+         curl -Ls https://github.com/goreleaser/goreleaser/releases/download/v0.164.0/goreleaser_Linux_x86_64.tar.gz | tar -xzf - -C /tmp
+     - name: Run the Release
+       env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       run: |
+         /tmp/goreleaser --rm-dist
