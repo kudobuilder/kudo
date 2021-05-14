@@ -1,7 +1,7 @@
 ---
 kep-number: 36
-short-desc: KudoOperator Toggling
-title: Parameter-controlled toggling of KudoOperator tasks
+short-desc: Allowing existence of an operator dependency to be conditional on a parameter value
+title: Conditional Operator Dependencies
 authors:
   - "@asekretenko"
 owners:
@@ -15,7 +15,7 @@ see-also:
   - KEP-29
 ---
 
-# Parameter-controlled toggling of KudoOperator tasks
+# Conditional Operator Dependencies
 
 ## Table of Contents
 * [Summary](#summary)
@@ -31,21 +31,22 @@ see-also:
 * [Drawbacks](#drawbacks)
 * [Alternatives](#alternatives)
 
-<!-- [Tools for generating]: https://github.com/ekalinin/github-markdown-toc -->
 
 ## Summary
 
-This KEP aims to add an ability to switch an operator dependency on and off via a specified parameter of a parent operator. Namely, as a result of implementing this KEP, `KudoOperator` task definition will get an optional field containing a name of a boolean parameter (of the parent operator), the value of which will determine whether the child operator instance should exist.
+This KEP aims to make it possible to create operators with conditionally existing child operators. Namely, as a result of implementing this KEP, it will be possible to create a task, execution of which, depending on a value of a specified parameter, will ensure either
+ * that a child operator instance exists, with appropriate parameters and operator version (this is what `KudoOperator` task currently does)
+ * or that the child instance does not exist (by cleaning it up if it does)
 
 ## Motivation
-From [#1775](https://github.com/kudobuilder/kudo/issues/1775):
-> Currently, KudoOperator tasks don't support toggle behavior which significantly complicates the handling of the optional dependencies. A good example could be Spark and History Server or Kafka and Schema Registry. The only possible options to handle it today are either include the templates as-is into the parent operator and control the contents at the template level or to implement a job (via Toggle task) which deploys/removes the dependency based on a parameter value. Also, cascading updates/upgrades become complicated in these scenarios.
+
+While `KudoOperator` task type greatly simplifies handling operator dependencies by introducing the notion of a child operator, it is almost of no help when one needs to make existence of a child operator conditional. Good examples of cases where this is necessary are running Spark with an optional History Server or Kafka with an optional Schema Registry.
+
+In both cases, it would be more convenient to control the optional dependencies via separate child operators; however, the only ways to optionally have a dependency today are either to include templates as-is into the parent operator and to control the contents at the template level, or to implement a job (via a `Toggle` task) which deploys/removes the dependency based on a parameter value. Also, cascading updates/upgrades become complicated in these scenarios. (See [#1775](https://github.com/kudobuilder/kudo/issues/1775)).
 
 ### Goals
 
-* Add an ability to enforce existence/**non-existence** of the child operator instance (and all its children) via a parent operator parameter, i.e. to toggle the dependency.
-
-* Make parent operators specifying an invalid parameter for toggling fail instance admission (as opposed to simply failing a plan with misconfigured `KudoOperator` task).
+* Add an ability to toggle a `KudoOperator` task between ensuring existence (as it does now) and ensuring **non-existence** of the child operator instance (and its children) via a parent operator parameter. Toggling in both directions will be possibe.
 
 ### Non-Goals
 
@@ -78,11 +79,9 @@ Task execution and instance validation will require that the type of the specifi
 No special handling for upgrade is planned.
 
 Some consequencees of this choice:
- * Dropping the parameter will convert the task into an unconditional `KudoOperator` managing the same instance.
+ * Dropping the parameter will convert the task into an unconditional `KudoOperator` task managing the same instance.
 
  * Switching to a parent operator parameter with a different name will have an effect determined only by the value of the new parameter.
-
- * Dropping a `KudoOperator` task in one operator version and re-introducing a dependency with the same name with completely different parameters in some next version will still allow the new version to uninstall the formerly child operator by upgrade with setting the newly introduced enabling parameter to `false`. Operator developers will still need to consider the whole history of development of an operator to avoid unintended consequences of upgrades.
 
 ### Implementation Notes
 
@@ -96,6 +95,6 @@ This proposal makes the operator developer API even less robust with regards to 
 
 ## Alternatives
 
-Currently existing alternative is conditionally creating a child operator instance (and also Operator/OperatorVersion if needed) by means of `Toggle` tasks. This is extremely cumbersome in the existing form, but might become much more convenient if we are to implement a stable API for managing operators via a single custom resource (aka CRD-based installation; KEP yet to be filed).
-
-However, one might argue that `KudoOperator` will still provide a much more convenient framework for cases when a parent operator has multiple children that are never used on their own.
+Currently existing alternatives:
+ * Pulling the would-be contents of a child operator into the main operator as `Apply` tasks with heavily parametrized templates, or as `Toggle` tasks. This becomes complicated when the would-be child operator has to implement something more complex than a simple unconditional set of `Apply`/`Toggle` tasks.
+ * Conditionally creating/deleting child operator instance by means of `Toggle` tasks. This is extremely cumbersome in the existing form, but might become much more convenient if we are to implement a stable API for managing operators via a single custom resource (aka CRD-based installation; KEP yet to be filed). However, one might argue that `KudoOperator` is still going to provide a much more convenient framework for cases when a parent operator has multiple children that are never used on their own.
