@@ -50,11 +50,17 @@ In both cases, it would be more convenient to control the optional dependencies 
 
 ### Non-Goals
 
-* Chain validation of child instances. `KudoOperator` configurations that result in failed instance admission of a child do not fail parent instance admission, only plan execution. Functionality introduced by this proposal is also affected by this: for example, if a parent switches on a child that uses a non-existent parameter for toggling a grandchild, parent instance admission will succeed, only the corresponding parent plan will fail.
+* Adding a way to turn a child instance into an independent one (i.e. to detach/disown a dependency).
 
-* OperatorVersion validation. This proposal adds one more way to create an operator that just cannot be installed regardless of instance parameters.
+* Adding a way to distinguish "dependency parameters" from other parameters of the parent operator. Removing a dependency instance will not prevent users from modifying parent operator parameters that are only passed through into the child operator. In the Spark History Server example, history server options will be configured via a parameter of a parent operator; switching off the history server dependency will have no effect on the user's ability to change this parameter.
 
-* Introducing an `UninstallKudoOperator` task. An ability to unconditionally remove a child operator (for example, installed by a previous version), while no more difficult, is not a goal of this proposal.
+* Displaying whether the dependency is switched on or off in an output of `kudo plan status`. As for now, the latter only descends to the status of individual plan steps of the parent instance and tells nothing about the dependencies. The dependency being switched off is a property of an individual task and not of a step.
+
+* Chain validation of child instances. As for now, `KudoOperator` task executions that result in failed instance admission of a child do not fail parent instance admission, only plan execution. Functionality introduced by this proposal is also affected by this: for example, if a parent switches on a child that uses a non-existent parameter for toggling a grandchild, parent instance admission will succeed, only the corresponding parent plan will fail.
+
+* OperatorVersion validation. This proposal adds one more way to create an operator version that cannot be installed regardless of instance parameter values.
+
+* Introducing a task that unconditionally removes a child operator instance.
 
 ## Proposal
 
