@@ -8,7 +8,7 @@ owners:
   - "@asekretenko"
 editor: @asekretenko
 creation-date: 2021-04-30
-last-updated: 2021-04-30
+last-updated: 2021-05-17
 status: provisional
 see-also:
   - KEP-23
