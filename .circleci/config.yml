@@ -47,7 +47,7 @@ jobs:
 
   lint:
     docker:
-      - image: kudobuilder/golang:1.16
+      - image: kudobuilder/golang:1.15
     working_directory: /go/src/github.com/kudobuilder/kudo
     steps:
       - checkout
