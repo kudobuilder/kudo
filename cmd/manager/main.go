@@ -85,6 +85,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		CertDir:    getEnv("KUDO_CERT_DIR", filepath.Join("/tmp", "cert")),
+		Port:       443,
 		SyncPeriod: syncPeriod,
 	})
 	if err != nil {
