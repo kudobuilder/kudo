@@ -1,6 +1,6 @@
 ---
 kep-number: 36
-short-desc: Allowing existence of an operator dependency to be conditional on a parameter value
+short-desc: Allowing existence of a child operator to be conditional on a parameter value
 title: Conditional Operator Dependencies
 authors:
   - "@asekretenko"
@@ -8,7 +8,7 @@ owners:
   - "@asekretenko"
 editor: @asekretenko
 creation-date: 2021-04-30
-last-updated: 2021-05-17
+last-updated: 2021-05-27
 status: provisional
 see-also:
   - KEP-23
@@ -34,15 +34,15 @@ see-also:
 
 ## Summary
 
-This KEP aims to make it possible to create operators with conditionally existing child operators. Namely, as a result of implementing this KEP, it will be possible to create a task, execution of which, depending on a value of a specified parameter, will ensure either
- * that a child operator instance exists, with appropriate parameters and operator version (this is what `KudoOperator` task currently does)
+This KEP aims to make it possible to create operators with optionally existing child operator instances. Namely, as a result of implementing this KEP, it will be possible to create a task, execution of which, depending on a value of a specified parameter, will ensure either
+ * that a child operator instance exists, with appropriate parameters and operator version
  * or that the child instance does not exist (by cleaning it up if it does)
 
 ## Motivation
 
-While `KudoOperator` task type greatly simplifies handling operator dependencies by introducing the notion of a child operator, it is almost of no help when one needs to make existence of a child operator conditional. Good examples of cases where this is necessary are running Spark with an optional History Server or Kafka with an optional Schema Registry.
+`KudoOperator` task type greatly simplifies handling operator dependencies by introducing the notion of a child operator. However, `KudoOperator` cannot be used directly when the existence of a child operator would have to be optional. Good examples of such cases are running Spark with an optional History Server or Kafka with an optional Schema Registry.
 
-In both cases, it would be more convenient to control the optional dependencies via separate child operators; however, the only ways to optionally have a dependency today are either to include templates as-is into the parent operator and to control the contents at the template level, or to implement a job (via a `Toggle` task) which deploys/removes the dependency based on a parameter value. Also, cascading updates/upgrades become complicated in these scenarios. (See [#1775](https://github.com/kudobuilder/kudo/issues/1775)).
+In both cases, it would be more convenient to control the optional features via separate child operators; however, as of today, there are only two ways to have such a component installed optionally: either to include templates as-is into the parent operator and to control the contents at the template level, or to implement a job (via a `Toggle` task) which deploys/removes the optional component based on a parameter value. Cascading updates/upgrades become complicated in these scenarios. (See [#1775](https://github.com/kudobuilder/kudo/issues/1775)).
 
 ### Goals
 
@@ -50,11 +50,13 @@ In both cases, it would be more convenient to control the optional dependencies 
 
 ### Non-Goals
 
-* Adding a way to turn a child instance into an independent one (i.e. to detach/disown a dependency).
+* Adding a way to turn a child instance into an independent one (i.e. an ability to "switch off" an existing dependency relationship between two instances).
 
-* Adding a way to distinguish "dependency parameters" from other parameters of the parent operator. Removing a dependency instance will not prevent users from modifying parent operator parameters that are only passed through into the child operator. In the Spark History Server example, history server options will be configured via a parameter of a parent operator; switching off the history server dependency will have no effect on the user's ability to change this parameter.
+* Adding a way to turn an independent instance into a child instance.
 
-* Displaying whether the dependency is switched on or off in an output of `kudo plan status`. As for now, the latter only descends to the status of individual plan steps of the parent instance and tells nothing about the dependencies. The dependency being switched off is a property of an individual task and not of a step.
+* Preventing users from modifying parent operator parameters that are only used to configure the child operator when the child instance does not exist. In the Spark History Server example, history server options will be configured via a parameter of a parent operator; switching off the history server operator will have no effect on the user's ability to change the value of the "history server options" parameter of the parent operator.
+
+* Displaying whether the child operator is enabled or disabled in an output of `kudo plan status`. As for now, the latter only descends to the status of individual plan steps of the parent instance and tells nothing about the child instances; this KEP does not aim to change this.
 
 * Chain validation of child instances. As for now, `KudoOperator` task executions that result in failed instance admission of a child do not fail parent instance admission, only plan execution. Functionality introduced by this proposal is also affected by this: for example, if a parent switches on a child that uses a non-existent parameter for toggling a grandchild, parent instance admission will succeed, only the corresponding parent plan will fail.
 
@@ -62,24 +64,26 @@ In both cases, it would be more convenient to control the optional dependencies 
 
 * Introducing a task that unconditionally removes a child operator instance.
 
+* Conditional optionality. If, for example, an operator A has two optional children B and C, but C is not needed if B is not enabled, the user will need to disable C separately, which does not provide a good user experience. However, in this specific example operator developer could resolve the problem by turning C into a child of B or, if they have no control over the code of B, by adding a layer of indirection: a conditionally installed operator B\* that will unconditionally install B and conditionally install C. Conversely, if enabling B always requires C to be enabled, then B could be turned into a child of C.
+
 ## Proposal
 
 ### Interface
 An optional field `enablingParameter` will be added to the `KudoOperator` task:
 ```
-- name: dependency
+- name: child
   kind: KudoOperator
   spec:
-    package: "./packages/dependency"
-    parameterFile: dependency-params.yaml
-    enablingParameter: "installDependency"
+    package: "./packages/child"
+    parameterFile: child-params.yaml
+    enablingParameter: "installChild"
 ```
-In this example, when the parameter `installDependency` equals to `true`, the task will be handled as a normal, unconditional `KudoOperator`. When the parameter equals to `false`, execution of the task will ensure that the corresponding operator instance is not installed (uninstalling it if necessary).
+In this example, when the parameter `installChild` equals to `true`, the task will be handled as a normal, unconditional `KudoOperator`. When the parameter equals to `false`, execution of the task will ensure that the corresponding operator instance is not installed (uninstalling it if necessary).
 
-#### Validation
-A `KudoOperator` task referencing a non-existing parent parameter will be treated as invalid: instance admission (and plan execution, if instance admission is not used) will fail.
+#### Validity criteria
+A `KudoOperator` task specifying a non-existing parent parameter via `enablingParameter` will be treated as invalid: operator package validation, instance admission and task execution will all fail in this case.
 
-Task execution and instance validation will require that the type of the specified parameter is either "boolean" or a string convertible to boolean according to rules used by Go's `strconv.ParseBool()`.
+Instance admission and task execution will require that the type of the specified parameter is either "boolean" or a string convertible to boolean according to rules used by Go's `strconv.ParseBool()`.
 
 #### Changing `enablingParameter` on upgrade
 No special handling for upgrade is planned.
