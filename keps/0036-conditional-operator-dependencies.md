@@ -85,14 +85,6 @@ A `KudoOperator` task specifying a non-existing parent parameter via `enablingPa
 
 Instance admission and task execution will require that the type of the specified parameter is either "boolean" or a string convertible to boolean according to rules used by Go's `strconv.ParseBool()`.
 
-#### Changing `enablingParameter` on upgrade
-No special handling for upgrade is planned.
-
-Some consequencees of this choice:
- * Dropping the parameter will convert the task into an unconditional `KudoOperator` task managing the same instance.
-
- * Switching to a parent operator parameter with a different name will have an effect determined only by the value of the new parameter.
-
 ### Implementation Notes
 
 Implementation is relatively straightforward, including the instance removal case: the child instance to be removed will be identified via the same mechanism as one used for identifying the instance to patch on upgrade/update.
