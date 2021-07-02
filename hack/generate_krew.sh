@@ -74,6 +74,7 @@ EOF
 generate_platform linux amd64 ./kubectl-kudo >> kudo.yaml
 generate_platform linux 386 ./kubectl-kudo >> kudo.yaml
 generate_platform darwin amd64 ./kubectl-kudo >> kudo.yaml
+generate_platform darwin arm64 ./kubectl-kudo >> kudo.yaml
 
 ### KUDO is not currently built for Windows. Uncomment once it is.
 # generate_platform windows amd64 ./kubectl-kudo.exe >> kudo.yaml
