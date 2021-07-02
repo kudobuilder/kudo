@@ -25,6 +25,7 @@ func (ParametersVerifier) Verify(pf *packages.Files) verifier.Result {
 	res.Merge(immutableParams(pf))
 	res.Merge(enumParams(pf))
 	res.Merge(paramDefaults(pf))
+	res.Merge(paramTypes(pf))
 	res.Merge(metadata(pf))
 	res.Merge(paramGroups(pf))
 
@@ -54,6 +55,16 @@ func immutableParams(pf *packages.Files) verifier.Result {
 			if !p.HasDefault() && !p.IsRequired() {
 				res.AddParamError(p.Name, "is immutable but is not marked as required or has a default value")
 			}
+		}
+	}
+	return res
+}
+
+func paramTypes(pf *packages.Files) verifier.Result {
+	res := verifier.NewResult()
+	for _, p := range pf.Params.Parameters {
+		if err := p.ValidateType(); err != nil {
+			res.AddErrors(err.Error())
 		}
 	}
 	return res

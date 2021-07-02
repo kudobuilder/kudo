@@ -30,6 +30,14 @@ func TestRender(t *testing.T) {
 			},
 			expected: "  Baz: Quux\n  Foo: Bar",
 		},
+		{
+			name:     "longRender",
+			template: "{{ .Params.LongParam }}",
+			params: map[string]interface{}{
+				"LongParam": int64(432000000),
+			},
+			expected: "432000000",
+		},
 	}
 
 	engine := New()
