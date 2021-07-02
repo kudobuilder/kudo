@@ -57,7 +57,7 @@ There are multiple Package managers and ideas out there and we need to decide wh
 * Defining the overall `kubebuilder/operator` repository structure
 * Having a solution on how to expose a repository
 * The solution should be platform-agnostic, so that Packages can be used on multiple platforms
-* Adapting concepts from other successfull open-source projects in this regard
+* Adapting concepts from other successful open-source projects in this regard
 
 ### Non-Goals
 

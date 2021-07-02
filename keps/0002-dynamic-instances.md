@@ -33,7 +33,7 @@ This KEP aims to make the end user experience for operators more specific to the
 
 Currently, the interface for using operators in KUDO is generic. Users create an `Instance` CRD with specs. Operator developers and users expect to be able to use contextual business objects for their operators instead of generic objects. This enables a more focused experience for users of KEP.
 
-The goal of this KEP is to improve the end user UX through dynamic instances. Other than the ability to specfiy CRDs, and adjusting existing operator development instances to accomodate this change, it is not the goal of this KEP to change the operator development UX.
+The goal of this KEP is to improve the end user UX through dynamic instances. Other than the ability to specify CRDs, and adjusting existing operator development instances to accommodate this change, it is not the goal of this KEP to change the operator development UX.
 
 ### Goals
 
