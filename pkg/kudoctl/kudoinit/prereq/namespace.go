@@ -7,7 +7,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
@@ -91,11 +91,11 @@ func (o KudoNamespace) Install(client *kube.Client) error {
 	return err
 }
 
-func (o KudoNamespace) Resources() []runtime.Object {
+func (o KudoNamespace) Resources() []client.Object {
 	if !o.opts.IsDefaultNamespace() {
-		return make([]runtime.Object, 0)
+		return make([]client.Object, 0)
 	}
-	return []runtime.Object{o.ns}
+	return []client.Object{o.ns}
 }
 
 // generateSysNamespace builds the system namespace

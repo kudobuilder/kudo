@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -159,8 +159,8 @@ func (i *Installer) Install(client *kube.Client) error {
 	return nil
 }
 
-func (i *Installer) Resources() []runtime.Object {
-	var allManifests []runtime.Object
+func (i *Installer) Resources() []client.Object {
+	var allManifests []client.Object
 
 	for _, initStep := range i.initializers {
 		allManifests = append(allManifests, initStep.Resources()...)

@@ -8,7 +8,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
@@ -88,11 +88,11 @@ func (o KudoServiceAccount) Install(client *kube.Client) error {
 	return nil
 }
 
-func (o KudoServiceAccount) Resources() []runtime.Object {
+func (o KudoServiceAccount) Resources() []client.Object {
 	if o.opts.IsDefaultServiceAccount() {
-		return []runtime.Object{o.serviceAccount, o.roleBinding}
+		return []client.Object{o.serviceAccount, o.roleBinding}
 	}
-	return make([]runtime.Object, 0)
+	return make([]client.Object, 0)
 }
 
 // Validate whether the serviceAccount exists

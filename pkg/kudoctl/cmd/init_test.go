@@ -44,7 +44,7 @@ type fakeClient struct {
 func newFakeClient(objs ...runtime.Object) fakeClient {
 	fc := fake.NewSimpleClientset(objs...)
 	fc2 := apiextfake.NewSimpleClientset()
-	cc := fake2.NewFakeClientWithScheme(scheme.Scheme, objs...)
+	cc := fake2.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(objs...).Build()
 
 	return fakeClient{
 		client: &kube.Client{

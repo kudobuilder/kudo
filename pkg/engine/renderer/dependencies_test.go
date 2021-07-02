@@ -45,9 +45,9 @@ func TestGetResources(t *testing.T) {
 		taskObjects []*unstructured.Unstructured
 		client      client.Client
 	}{
-		{name: "from api server", taskObjects: []*unstructured.Unstructured{}, client: fake.NewFakeClientWithScheme(scheme.Scheme, &cm)},
-		{name: "from task objects", taskObjects: []*unstructured.Unstructured{&cmUnstructured}, client: fake.NewFakeClientWithScheme(scheme.Scheme)},
-		{name: "from api server without annotation", taskObjects: []*unstructured.Unstructured{}, client: fake.NewFakeClientWithScheme(scheme.Scheme, cmWithoutAnnotation)},
+		{name: "from api server", taskObjects: []*unstructured.Unstructured{}, client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(&cm).Build()},
+		{name: "from task objects", taskObjects: []*unstructured.Unstructured{&cmUnstructured}, client: fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()},
+		{name: "from api server without annotation", taskObjects: []*unstructured.Unstructured{}, client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(cmWithoutAnnotation).Build()},
 	}
 
 	for _, tt := range tests {

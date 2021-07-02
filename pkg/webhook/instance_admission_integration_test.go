@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -43,7 +42,7 @@ var _ = BeforeSuite(func() {
 	iaw := prereq.InstanceAdmissionWebhook(v1.NamespaceDefault)
 	instanceAdmissionWebhookPath = *iaw.Webhooks[0].ClientConfig.Service.Path
 
-	env.WebhookInstallOptions = envtest.WebhookInstallOptions{MutatingWebhooks: []runtime.Object{&iaw}}
+	env.WebhookInstallOptions = envtest.WebhookInstallOptions{MutatingWebhooks: []client.Object{&iaw}}
 
 	// 2. add KUDO CRDs
 	log.Print("test.BeforeSuite: initializing CRDs")
@@ -62,7 +61,7 @@ var _ = Describe("Test", func() {
 	var defaultTimeout float64 = 5 // seconds
 
 	var c client.Client
-	var stop chan struct{}
+	var stop context.CancelFunc
 
 	// every test case gets it's own manager and client instances. not sure if that's the best
 	// practice but it  seems to be fast enough.
@@ -94,15 +93,16 @@ var _ = Describe("Test", func() {
 		server.Register(instanceAdmissionWebhookPath, &ctrhook.Admission{Handler: &InstanceAdmission{client: c}})
 
 		// 5. starting the manager
-		stop = make(chan struct{})
+		var ctx context.Context
+		ctx, stop = context.WithCancel(context.Background())
 		go func() {
-			err = mgr.Start(stop)
+			err = mgr.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 	})
 
 	AfterEach(func() {
-		close(stop)
+		stop()
 	})
 
 	deploy := kudoapi.DeployPlanName
@@ -157,7 +157,7 @@ var _ = Describe("Test", func() {
 
 		It("should schedule deploy plan when an instance is created", func() {
 			// 1. admission controller should schedule 'deploy' plan and add cleanup finalizer for new instances
-			key = keyFrom(idle)
+			key = client.ObjectKeyFromObject(idle)
 			i := instanceWith(c, key)
 
 			Expect(i.Spec.PlanExecution.PlanName).Should(Equal(deploy))
@@ -288,14 +288,6 @@ var _ = Describe("Test", func() {
 		}, defaultTimeout)
 	})
 })
-
-// keyFrom method is a small helper method to retrieve an ObjectKey from the given object. Meant to be used within this test class
-// only as it will fail the test should an error occur.
-func keyFrom(obj runtime.Object) client.ObjectKey {
-	key, err := client.ObjectKeyFromObject(obj)
-	Expect(err).NotTo(HaveOccurred())
-	return key
-}
 
 // instanceWith method is a small helper method to retrieve an Instance with the give key. Meant to be used within this test class
 // only as it will fail the test should an error occur.

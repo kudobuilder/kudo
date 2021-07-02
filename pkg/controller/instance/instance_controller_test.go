@@ -272,17 +272,15 @@ func TestEventFilterForDelete(t *testing.T) {
 		e       event.DeleteEvent
 	}{
 		{"A Pod without annotations", true, event.DeleteEvent{
-			Meta:               &v1.Pod{},
-			Object:             nil,
+			Object:             &v1.Pod{},
 			DeleteStateUnknown: false,
 		}},
 		{"A Pod with pipePod annotation", false, event.DeleteEvent{
-			Meta: &v1.Pod{
+			Object: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{task.PipePodAnnotation: "true"},
 				},
 			},
-			Object:             nil,
 			DeleteStateUnknown: false,
 		}},
 	}

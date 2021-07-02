@@ -332,7 +332,8 @@ func TestInitWithServiceAccount(t *testing.T) {
 				if rbNamespace == "" {
 					rbNamespace = namespace
 				}
-				crb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", rbNamespace, tt.serviceAccount, tt.roleBindingRole)
+				crb, converted := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", rbNamespace, tt.serviceAccount, tt.roleBindingRole).(client.Object)
+				assert.True(t, converted)
 				assert.NoError(t, testClient.Create(context.TODO(), crb))
 				defer func() {
 					assert.NoError(t, testClient.Delete(context.TODO(), crb))
@@ -424,31 +425,33 @@ func TestReInitFails(t *testing.T) {
 	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", errBuf.String())
 }
 
-func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
+func deleteObjects(objs []client.Object, client *testutils.RetryClient) error {
+	runtimeObjs := []runtime.Object{}
 	for _, obj := range objs {
 		if err := client.Delete(context.TODO(), obj); err != nil {
 			return err
 		}
+		runtimeObjs = append(runtimeObjs, obj)
 	}
 
-	return testutils.WaitForDelete(client, objs)
+	return testutils.WaitForDelete(client, runtimeObjs)
 }
 
-func deleteInitPrereqs(cmd *initCmd, client *testutils.RetryClient) error {
+func deleteInitPrereqs(cmd *initCmd, cl *testutils.RetryClient) error {
 	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, cmd.upgrade, cmd.selfSignedWebhookCA)
 
-	objs := append([]runtime.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
+	objs := append([]client.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
 	objs = append(objs, prereq.NewServiceAccountInitializer(opts).Resources()...)
 	objs = append(objs, crd.NewInitializer().Resources()...)
 
 	// Namespaced resources aren't waited on after deletion because they aren't GC'ed in this test environment.
 	for _, ns := range prereq.NewNamespaceInitializer(opts).Resources() {
-		if err := client.Delete(context.TODO(), ns); err != nil {
+		if err := cl.Delete(context.TODO(), ns); err != nil {
 			return err
 		}
 	}
 
-	return deleteObjects(objs, client)
+	return deleteObjects(objs, cl)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {

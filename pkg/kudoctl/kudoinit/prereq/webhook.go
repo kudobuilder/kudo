@@ -13,12 +13,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubeutils "github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
@@ -192,22 +192,22 @@ func (k *KudoWebHook) UninstallWebHook(client *kube.Client) error {
 	return nil
 }
 
-func (k *KudoWebHook) Resources() []runtime.Object {
+func (k *KudoWebHook) Resources() []client.Object {
 	if k.opts.SelfSignedWebhookCA {
 		iaw, s, err := k.resourcesWithSelfSignedCA()
 		if err != nil {
 			panic(err)
 		}
-		return []runtime.Object{iaw, s}
+		return []client.Object{iaw, s}
 
 	}
 
 	return k.resourcesWithCertManager()
 }
 
-func (k *KudoWebHook) resourcesWithCertManager() []runtime.Object {
+func (k *KudoWebHook) resourcesWithCertManager() []client.Object {
 	av := instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup)
-	objs := []runtime.Object{&av}
+	objs := []client.Object{&av}
 	objs = append(objs, k.issuer)
 	objs = append(objs, k.certificate)
 	return objs

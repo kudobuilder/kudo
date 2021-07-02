@@ -67,34 +67,33 @@ type Reconciler struct {
 // SetupWithManager registers this reconciler with the controller manager
 func (r *Reconciler) SetupWithManager(
 	mgr ctrl.Manager) error {
-	addOvRelatedInstancesToReconcile := handler.ToRequestsFunc(
-		func(obj handler.MapObject) []reconcile.Request {
-			requests := make([]reconcile.Request, 0)
-			instances := &kudoapi.InstanceList{}
-			// we are listing all instances here, which could come with some performance penalty
-			// obj possible optimization is to introduce filtering based on operatorversion (or operator)
-			err := mgr.GetClient().List(
-				context.TODO(),
-				instances,
-			)
-			if err != nil {
-				log.Printf("InstanceController: Error fetching instances list for operator %v: %v", obj.Meta.GetName(), err)
-				return nil
+	addOvRelatedInstancesToReconcile := func(obj client.Object) []reconcile.Request {
+		requests := make([]reconcile.Request, 0)
+		instances := &kudoapi.InstanceList{}
+		// we are listing all instances here, which could come with some performance penalty
+		// obj possible optimization is to introduce filtering based on operatorversion (or operator)
+		err := mgr.GetClient().List(
+			context.TODO(),
+			instances,
+		)
+		if err != nil {
+			log.Printf("InstanceController: Error fetching instances list for operator %v: %v", obj.GetName(), err)
+			return nil
+		}
+		for _, instance := range instances.Items {
+			// we need to pick only those instances, that belong to the OperatorVersion we're reconciling
+			if instance.Spec.OperatorVersion.Name == obj.GetName() &&
+				instance.OperatorVersionNamespace() == obj.GetNamespace() {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      instance.Name,
+						Namespace: instance.Namespace,
+					},
+				})
 			}
-			for _, instance := range instances.Items {
-				// we need to pick only those instances, that belong to the OperatorVersion we're reconciling
-				if instance.Spec.OperatorVersion.Name == obj.Meta.GetName() &&
-					instance.OperatorVersionNamespace() == obj.Meta.GetNamespace() {
-					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      instance.Name,
-							Namespace: instance.Namespace,
-						},
-					})
-				}
-			}
-			return requests
-		})
+		}
+		return requests
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		// Owns(&kudoapi.Instance{}) is equivalent to Watches(&source.Kind{Type: <ForType-apiType>},
@@ -112,7 +111,7 @@ func (r *Reconciler) SetupWithManager(
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&corev1.Pod{}).
 		WithEventFilter(eventFilter()).
-		Watches(&source.Kind{Type: &kudoapi.OperatorVersion{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: addOvRelatedInstancesToReconcile}).
+		Watches(&source.Kind{Type: &kudoapi.OperatorVersion{}}, handler.EnqueueRequestsFromMapFunc(addOvRelatedInstancesToReconcile)).
 		Complete(r)
 }
 
@@ -137,7 +136,7 @@ func eventFilter() predicate.Funcs {
 }
 
 func isForPipePod(e event.DeleteEvent) bool {
-	return e.Meta.GetAnnotations() != nil && funk.Contains(e.Meta.GetAnnotations(), task.PipePodAnnotation)
+	return e.Object.GetAnnotations() != nil && funk.Contains(e.Object.GetAnnotations(), task.PipePodAnnotation)
 }
 
 // Reconcile is the main controller method that gets called every time something about the instance changes
@@ -166,7 +165,7 @@ func isForPipePod(e event.DeleteEvent) bool {
 //   +-------------------------------+
 //
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	// ---------- 1. Query the current state ----------
 
 	log.Printf("InstanceController: Received Reconcile request for instance %s", request.NamespacedName)

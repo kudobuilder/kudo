@@ -22,7 +22,10 @@ rm -rf operators
 git clone https://github.com/kudobuilder/operators
 mkdir operators/bin/
 cp ./bin/kubectl-kudo operators/bin/
-sed "s/%version%/$KUDO_VERSION/" operators/kudo-test.yaml.tmpl > operators/kudo-test.yaml
+
+# TODO (asekretenko): Use kuttl directly instead of kudo test.
+# This will obviate the need to patch apiVersion.
+cat operators/kudo-test.yaml.tmpl | sed "s/%version%/$KUDO_VERSION/" | sed "s/apiVersion: kudo.dev\/v1alpha1/apiVersion: kuttl.dev\/v1beta1/" > operators/kudo-test.yaml
 
 if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then

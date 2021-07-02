@@ -7,9 +7,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -620,7 +621,7 @@ func TestExecutePlan(t *testing.T) {
 	}
 
 	testScheme := scheme.Scheme
-	testClient := fake.NewFakeClientWithScheme(scheme.Scheme)
+	testClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 	fakeDiscovery := kudofake.CachedDiscoveryClient()
 	fakeCachedDiscovery := memory.NewMemCacheClient(fakeDiscovery)
 	for _, tt := range tests {
@@ -661,6 +662,6 @@ func instance() *kudoapi.Instance {
 
 type testEnhancer struct{}
 
-func (k *testEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+func (k *testEnhancer) Apply(objs []client.Object, metadata renderer.Metadata) ([]client.Object, error) {
 	return objs, nil
 }
