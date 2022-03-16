@@ -1,7 +1,5 @@
 #!/bin/sh
 
-docker build --build-arg GOLANG_VERSION=1.18 -t kudobuilder/golang:1.18 .
-docker push kudobuilder/golang:1.18
+docker buildx build --build-arg GOLANG_VERSION=1.18 --platform linux/amd64,linux/arm64,linux/arm/v7 -t kudobuilder/golang:1.18 . --push
 
-docker build --build-arg GOLANG_VERSION=latest -t kudobuilder/golang:latest .
-docker push kudobuilder/golang:latest
+docker buildx build --build-arg GOLANG_VERSION=latest --platform linux/amd64,linux/arm64,linux/arm/v7 -t kudobuilder/golang:latest . --push
