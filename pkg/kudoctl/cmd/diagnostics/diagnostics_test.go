@@ -1,6 +1,7 @@
 package diagnostics
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -30,6 +31,10 @@ import (
 const (
 	fakeNamespace  = "my-namespace"
 	fakeZkInstance = "zookeeper-instance"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 const (

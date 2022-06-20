@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.4.2-0.20210129215148-557da250b856
   creationTimestamp: null
   name: operators.kudo.dev
 spec:
@@ -21,10 +21,14 @@ spec:
         description: Operator is the Schema for the operator API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -42,7 +46,8 @@ spec:
                   description: Maintainer describes an Operator maintainer.
                   properties:
                     email:
-                      description: Email is an optional email address to contact the named maintainer.
+                      description: Email is an optional email address to contact the
+                        named maintainer.
                       type: string
                     name:
                       description: Name is a user name or organization name.
@@ -72,7 +77,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.4.2-0.20210129215148-557da250b856
   creationTimestamp: null
   name: operatorversions.kudo.dev
 spec:
@@ -90,10 +95,14 @@ spec:
         description: OperatorVersion is the Schema for the operatorversions API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -103,16 +112,50 @@ spec:
               appVersion:
                 type: string
               connectionString:
-                description: ConnectionString defines a templated string that can be used to connect to an instance of the Operator.
+                description: ConnectionString defines a templated string that can
+                  be used to connect to an instance of the Operator.
                 type: string
               operator:
-                description: 'ObjectReference contains enough information to let you inspect or modify the referred object. --- New uses of this type are discouraged because of difficulty describing its usage when embedded in APIs.  1. Ignored fields.  It includes many fields which are not generally honored.  For instance, ResourceVersion and FieldPath are both very rarely valid in actual usage.  2. Invalid usage help.  It is impossible to add specific help for individual usage.  In most embedded usages, there are particular     restrictions like, "must refer only to types A and B" or "UID not honored" or "name must be restricted".     Those cannot be well described when embedded.  3. Inconsistent validation.  Because the usages are different, the validation rules are different by usage, which makes it hard for users to predict what will happen.  4. The fields are both imprecise and overly precise.  Kind is not a precise mapping to a URL. This can produce ambiguity     during interpretation and require a REST mapping.  In most cases, the dependency is on the group,resource tuple     and the version of the actual struct is irrelevant.  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type     will affect numerous schemas.  Don''t make new APIs embed an underspecified API type they do not control. Instead of using this type, create a locally provided and used type that is well-focused on your reference. For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .'
+                description: 'ObjectReference contains enough information to let you
+                  inspect or modify the referred object. --- New uses of this type
+                  are discouraged because of difficulty describing its usage when
+                  embedded in APIs.  1. Ignored fields.  It includes many fields which
+                  are not generally honored.  For instance, ResourceVersion and FieldPath
+                  are both very rarely valid in actual usage.  2. Invalid usage help.  It
+                  is impossible to add specific help for individual usage.  In most
+                  embedded usages, there are particular     restrictions like, "must
+                  refer only to types A and B" or "UID not honored" or "name must
+                  be restricted".     Those cannot be well described when embedded.  3.
+                  Inconsistent validation.  Because the usages are different, the
+                  validation rules are different by usage, which makes it hard for
+                  users to predict what will happen.  4. The fields are both imprecise
+                  and overly precise.  Kind is not a precise mapping to a URL. This
+                  can produce ambiguity     during interpretation and require a REST
+                  mapping.  In most cases, the dependency is on the group,resource
+                  tuple     and the version of the actual struct is irrelevant.  5.
+                  We cannot easily change it.  Because this type is embedded in many
+                  locations, updates to this type     will affect numerous schemas.  Don''t
+                  make new APIs embed an underspecified API type they do not control.
+                  Instead of using this type, create a locally provided and used type
+                  that is well-focused on your reference. For example, ServiceReferences
+                  for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
+                  .'
                 properties:
                   apiVersion:
                     description: API version of the referent.
                     type: string
                   fieldPath:
-                    description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
                     type: string
                   kind:
                     description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -124,7 +167,8 @@ spec:
                     description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                     type: string
                   resourceVersion:
-                    description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                     type: string
                   uid:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
@@ -132,33 +176,47 @@ spec:
                 type: object
               parameters:
                 items:
-                  description: Parameter captures the variability of an OperatorVersion being instantiated in an instance.
+                  description: Parameter captures the variability of an OperatorVersion
+                    being instantiated in an instance.
                   properties:
                     default:
-                      description: Default is a default value if no parameter is provided by the instance.
+                      description: Default is a default value if no parameter is provided
+                        by the instance.
                       type: string
                     description:
-                      description: Description captures a longer description of how the parameter will be used.
+                      description: Description captures a longer description of how
+                        the parameter will be used.
                       type: string
                     displayName:
                       description: DisplayName can be used by UIs.
                       type: string
                     enum:
-                      description: Defines a list of allowed values. If Default is set and Enum is not nil, the value must be in this list as well
+                      description: Defines a list of allowed values. If Default is
+                        set and Enum is not nil, the value must be in this list as
+                        well
                       items:
                         type: string
                       type: array
                     immutable:
-                      description: Specifies if the parameter can be changed after the initial installation of the operator
+                      description: Specifies if the parameter can be changed after
+                        the initial installation of the operator
                       type: boolean
                     name:
-                      description: "Name is the string that should be used in the template file for example, if `name: COUNT` then using the variable in a spec like: \n spec:   replicas:  {{ .Params.COUNT }}"
+                      description: "Name is the string that should be used in the
+                        template file for example, if `name: COUNT` then using the
+                        variable in a spec like: \n spec:   replicas:  {{ .Params.COUNT
+                        }}"
                       type: string
                     required:
-                      description: Required specifies if the parameter is required to be provided by all instances, or whether a default can suffice.
+                      description: Required specifies if the parameter is required
+                        to be provided by all instances, or whether a default can
+                        suffice.
                       type: boolean
                     trigger:
-                      description: Trigger identifies the plan that gets executed when this parameter changes in the Instance object. Default is `update` if a plan with that name exists, otherwise it's `deploy`.
+                      description: Trigger identifies the plan that gets executed
+                        when this parameter changes in the Instance object. Default
+                        is `update` if a plan with that name exists, otherwise it's
+                        `deploy`.
                       type: string
                     value-type:
                       description: Type specifies the value type. Defaults to `string`.
@@ -172,14 +230,17 @@ spec:
                     phases:
                       description: Phases maps a phase name to a Phase object.
                       items:
-                        description: Phase specifies a list of steps that contain Kubernetes objects.
+                        description: Phase specifies a list of steps that contain
+                          Kubernetes objects.
                         properties:
                           name:
                             type: string
                           steps:
-                            description: Steps maps a step name to a list of templated Kubernetes objects stored as a string.
+                            description: Steps maps a step name to a list of templated
+                              Kubernetes objects stored as a string.
                             items:
-                              description: Step defines a specific set of operations that occur.
+                              description: Step defines a specific set of operations
+                                that occur.
                               properties:
                                 name:
                                   type: string
@@ -190,13 +251,15 @@ spec:
                               type: object
                             type: array
                           strategy:
-                            description: Ordering specifies how the subitems in this plan/phase should be rolled out.
+                            description: Ordering specifies how the subitems in this
+                              plan/phase should be rolled out.
                             type: string
                         type: object
                       nullable: true
                       type: array
                     strategy:
-                      description: Ordering specifies how the subitems in this plan/phase should be rolled out.
+                      description: Ordering specifies how the subitems in this plan/phase
+                        should be rolled out.
                       type: string
                   type: object
                 description: Plans maps a plan name to a plan.
@@ -205,17 +268,25 @@ spec:
               tasks:
                 description: List of all tasks available in this OperatorVersion.
                 items:
-                  description: Task is a global, polymorphic implementation of all publicly available tasks
+                  description: Task is a global, polymorphic implementation of all
+                    publicly available tasks
                   properties:
                     kind:
                       type: string
                     name:
                       type: string
                     spec:
-                      description: TaskSpec embeds all possible task specs. This allows us to avoid writing custom un/marshallers that would only parse certain fields depending on the task Kind. The downside of this approach is, that embedded types can not have fields with the same json names as it would become ambiguous for the default parser. We might revisit this approach in the future should this become an issue.
+                      description: TaskSpec embeds all possible task specs. This allows
+                        us to avoid writing custom un/marshallers that would only
+                        parse certain fields depending on the task Kind. The downside
+                        of this approach is, that embedded types can not have fields
+                        with the same json names as it would become ambiguous for
+                        the default parser. We might revisit this approach in the
+                        future should this become an issue.
                       properties:
                         appVersion:
-                          description: a specific app version in the official repo, defaults to the most recent
+                          description: a specific app version in the official repo,
+                            defaults to the most recent
                           type: string
                         done:
                           type: boolean
@@ -224,19 +295,26 @@ spec:
                         instanceName:
                           type: string
                         operatorVersion:
-                          description: a specific operator version in the official repo, defaults to the most recent one
+                          description: a specific operator version in the official
+                            repo, defaults to the most recent one
                           type: string
                         package:
-                          description: either repo package name, local package folder or an URL to package tarball. during operator installation, kudoctl will resolve the package and override this field with the resolved operator name.
+                          description: either repo package name, local package folder
+                            or an URL to package tarball. during operator installation,
+                            kudoctl will resolve the package and override this field
+                            with the resolved operator name.
                           type: string
                         parameter:
                           type: string
                         parameterFile:
-                          description: name of the template file (located in the `templates` folder) from which the *parent* instance generates a parameter file used to populate the *child* Instance.Spec.Parameters
+                          description: name of the template file (located in the `templates`
+                            folder) from which the *parent* instance generates a parameter
+                            file used to populate the *child* Instance.Spec.Parameters
                           type: string
                         pipe:
                           items:
-                            description: PipeSpec describes how a file generated by a PipeTask is stored and referenced
+                            description: PipeSpec describes how a file generated by
+                              a PipeTask is stored and referenced
                             properties:
                               envFile:
                                 type: string
@@ -264,18 +342,54 @@ spec:
               templates:
                 additionalProperties:
                   type: string
-                description: Templates is a list of references to YAML templates located in the templates folder and later referenced from tasks.
+                description: Templates is a list of references to YAML templates located
+                  in the templates folder and later referenced from tasks.
                 type: object
               upgradableFrom:
-                description: UpgradableFrom lists all OperatorVersions that can upgrade to this OperatorVersion.
+                description: UpgradableFrom lists all OperatorVersions that can upgrade
+                  to this OperatorVersion.
                 items:
-                  description: 'ObjectReference contains enough information to let you inspect or modify the referred object. --- New uses of this type are discouraged because of difficulty describing its usage when embedded in APIs.  1. Ignored fields.  It includes many fields which are not generally honored.  For instance, ResourceVersion and FieldPath are both very rarely valid in actual usage.  2. Invalid usage help.  It is impossible to add specific help for individual usage.  In most embedded usages, there are particular     restrictions like, "must refer only to types A and B" or "UID not honored" or "name must be restricted".     Those cannot be well described when embedded.  3. Inconsistent validation.  Because the usages are different, the validation rules are different by usage, which makes it hard for users to predict what will happen.  4. The fields are both imprecise and overly precise.  Kind is not a precise mapping to a URL. This can produce ambiguity     during interpretation and require a REST mapping.  In most cases, the dependency is on the group,resource tuple     and the version of the actual struct is irrelevant.  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type     will affect numerous schemas.  Don''t make new APIs embed an underspecified API type they do not control. Instead of using this type, create a locally provided and used type that is well-focused on your reference. For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .'
+                  description: 'ObjectReference contains enough information to let
+                    you inspect or modify the referred object. --- New uses of this
+                    type are discouraged because of difficulty describing its usage
+                    when embedded in APIs.  1. Ignored fields.  It includes many fields
+                    which are not generally honored.  For instance, ResourceVersion
+                    and FieldPath are both very rarely valid in actual usage.  2.
+                    Invalid usage help.  It is impossible to add specific help for
+                    individual usage.  In most embedded usages, there are particular     restrictions
+                    like, "must refer only to types A and B" or "UID not honored"
+                    or "name must be restricted".     Those cannot be well described
+                    when embedded.  3. Inconsistent validation.  Because the usages
+                    are different, the validation rules are different by usage, which
+                    makes it hard for users to predict what will happen.  4. The fields
+                    are both imprecise and overly precise.  Kind is not a precise
+                    mapping to a URL. This can produce ambiguity     during interpretation
+                    and require a REST mapping.  In most cases, the dependency is
+                    on the group,resource tuple     and the version of the actual
+                    struct is irrelevant.  5. We cannot easily change it.  Because
+                    this type is embedded in many locations, updates to this type     will
+                    affect numerous schemas.  Don''t make new APIs embed an underspecified
+                    API type they do not control. Instead of using this type, create
+                    a locally provided and used type that is well-focused on your
+                    reference. For example, ServiceReferences for admission registration:
+                    https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533
+                    .'
                   properties:
                     apiVersion:
                       description: API version of the referent.
                       type: string
                     fieldPath:
-                      description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
+                      description: 'If referring to a piece of an object instead of
+                        an entire object, this string should contain a valid JSON/Go
+                        field access statement, such as desiredState.manifest.containers[2].
+                        For example, if the object reference is to a container within
+                        a pod, this would take on a value like: "spec.containers{name}"
+                        (where "name" refers to the name of the container that triggered
+                        the event) or if no container name is specified "spec.containers[2]"
+                        (container with index 2 in this pod). This syntax is chosen
+                        only to have some well-defined way of referencing a part of
+                        an object. TODO: this design is not final and this field is
+                        subject to change in the future.'
                       type: string
                     kind:
                       description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -287,7 +401,8 @@ spec:
                       description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                       type: string
                     resourceVersion:
-                      description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                      description: 'Specific resourceVersion to which this reference
+                        is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                       type: string
                     uid:
                       description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
@@ -315,7 +430,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.4.2-0.20210129215148-557da250b856
   creationTimestamp: null
   name: instances.kudo.dev
 spec:
@@ -333,10 +448,14 @@ spec:
         description: Instance is the Schema for the instances API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -344,13 +463,24 @@ spec:
             description: InstanceSpec defines the desired state of Instance.
             properties:
               operatorVersion:
-                description: OperatorVersion specifies a reference to a specific OperatorVersion object.
+                description: OperatorVersion specifies a reference to a specific OperatorVersion
+                  object.
                 properties:
                   apiVersion:
                     description: API version of the referent.
                     type: string
                   fieldPath:
-                    description: 'If referring to a piece of an object instead of an entire object, this string should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2]. For example, if the object reference is to a container within a pod, this would take on a value like: "spec.containers{name}" (where "name" refers to the name of the container that triggered the event) or if no container name is specified "spec.containers[2]" (container with index 2 in this pod). This syntax is chosen only to have some well-defined way of referencing a part of an object. TODO: this design is not final and this field is subject to change in the future.'
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
                     type: string
                   kind:
                     description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
@@ -362,7 +492,8 @@ spec:
                     description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
                     type: string
                   resourceVersion:
-                    description: 'Specific resourceVersion to which this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                     type: string
                   uid:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
@@ -373,7 +504,19 @@ spec:
                   type: string
                 type: object
               planExecution:
-                description: 'There are two ways a plan execution can be triggered:  1) indirectly through update of a corresponding parameter in the InstanceSpec.Parameters map  2) directly through setting of the InstanceSpec.PlanExecution.PlanName field While indirect (1) triggers happens every time a user changes a parameter, a directly (2) triggered plan is reserved for the situations when parameters doesn''t change e.g. a periodic backup is triggered overriding the existing backup file. Additionally, this opens room for canceling and overriding currently running plans in the future. Note: PlanExecution field defines plan name and corresponding parameters that IS CURRENTLY executed. Once the instance controller (IC) is done with the execution, this field will be cleared. Each plan execution has a unique UID so should the same plan be re-triggered it will have a new UID'
+                description: 'There are two ways a plan execution can be triggered:  1)
+                  indirectly through update of a corresponding parameter in the InstanceSpec.Parameters
+                  map  2) directly through setting of the InstanceSpec.PlanExecution.PlanName
+                  field While indirect (1) triggers happens every time a user changes
+                  a parameter, a directly (2) triggered plan is reserved for the situations
+                  when parameters doesn''t change e.g. a periodic backup is triggered
+                  overriding the existing backup file. Additionally, this opens room
+                  for canceling and overriding currently running plans in the future.
+                  Note: PlanExecution field defines plan name and corresponding parameters
+                  that IS CURRENTLY executed. Once the instance controller (IC) is
+                  done with the execution, this field will be cleared. Each plan execution
+                  has a unique UID so should the same plan be re-triggered it will
+                  have a new UID'
                 properties:
                   planName:
                     type: string
@@ -381,7 +524,10 @@ spec:
                     description: ExecutionStatus captures the state of the rollout.
                     type: string
                   uid:
-                    description: UID is a type that holds unique ID values, including UUIDs.  Because we don't ONLY use UUIDs, this is an alias to string.  Being a type captures intent and helps make sure that UIDs and names do not get conflated.
+                    description: UID is a type that holds unique ID values, including
+                      UUIDs.  Because we don't ONLY use UUIDs, this is an alias to
+                      string.  Being a type captures intent and helps make sure that
+                      UIDs and names do not get conflated.
                     type: string
                 type: object
             type: object
@@ -390,23 +536,45 @@ spec:
             properties:
               conditions:
                 items:
-                  description: "Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"` \n     // other fields }"
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource. --- This struct is intended for direct
+                    use as an array at the field path .status.conditions.  For example,
+                    type FooStatus struct{     // Represents the observations of a
+                    foo's current state.     // Known .status.conditions.type are:
+                    \"Available\", \"Progressing\", and \"Degraded\"     // +patchMergeKey=type
+                    \    // +patchStrategy=merge     // +listType=map     // +listMapKey=type
+                    \    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`
+                    \n     // other fields }"
                   properties:
                     lastTransitionTime:
-                      description: lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      description: lastTransitionTime is the last time the condition
+                        transitioned from one status to another. This should be when
+                        the underlying condition changed.  If that is not known, then
+                        using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: message is a human readable message indicating details about the transition. This may be an empty string.
+                      description: message is a human readable message indicating
+                        details about the transition. This may be an empty string.
                       maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: observedGeneration represents the .metadata.generation that the condition was set based upon. For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date with respect to the current state of the instance.
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: reason contains a programmatic identifier indicating the reason for the condition's last transition. Producers of specific condition types may define expected values and meanings for this field, and whether the values are considered a guaranteed API. The value should be a CamelCase string. This field may not be empty.
+                      description: reason contains a programmatic identifier indicating
+                        the reason for the condition's last transition. Producers
+                        of specific condition types may define expected values and
+                        meanings for this field, and whether the values are considered
+                        a guaranteed API. The value should be a CamelCase string.
+                        This field may not be empty.
                       maxLength: 1024
                       minLength: 1
                       pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
@@ -419,7 +587,11 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: type of condition in CamelCase or in foo.example.com/CamelCase. --- Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be useful (see .node.status.conditions), the ability to deconflict is important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -433,7 +605,14 @@ spec:
                 type: array
               planStatus:
                 additionalProperties:
-                  description: "PlanStatus is representing status of a plan \n These are valid states and transitions \n                        | Never executed |                                |                                v |    Error    |<------>|    Pending     |        ^                       |        |                       v        |               +-------+--------+        |               +-------+--------+        |                       |        v                       v | Fatal error |        |    Complete    |"
+                  description: "PlanStatus is representing status of a plan \n These
+                    are valid states and transitions \n                        | Never
+                    executed |                                |                                v
+                    |    Error    |<------>|    Pending     |        ^                       |
+                    \       |                       v        |               +-------+--------+
+                    \       |               +-------+--------+        |                       |
+                    \       v                       v | Fatal error |        |    Complete
+                    \   |"
                   properties:
                     lastUpdatedTimestamp:
                       format: date-time
@@ -452,18 +631,21 @@ spec:
                           name:
                             type: string
                           status:
-                            description: ExecutionStatus captures the state of the rollout.
+                            description: ExecutionStatus captures the state of the
+                              rollout.
                             type: string
                           steps:
                             items:
-                              description: StepStatus is representing status of a step
+                              description: StepStatus is representing status of a
+                                step
                               properties:
                                 message:
                                   type: string
                                 name:
                                   type: string
                                 status:
-                                  description: ExecutionStatus captures the state of the rollout.
+                                  description: ExecutionStatus captures the state
+                                    of the rollout.
                                   type: string
                               type: object
                             type: array
@@ -473,10 +655,15 @@ spec:
                       description: ExecutionStatus captures the state of the rollout.
                       type: string
                     uid:
-                      description: UID is a type that holds unique ID values, including UUIDs.  Because we don't ONLY use UUIDs, this is an alias to string.  Being a type captures intent and helps make sure that UIDs and names do not get conflated.
+                      description: UID is a type that holds unique ID values, including
+                        UUIDs.  Because we don't ONLY use UUIDs, this is an alias
+                        to string.  Being a type captures intent and helps make sure
+                        that UIDs and names do not get conflated.
                       type: string
                   type: object
-                description: slice would be enough here but we cannot use slice because order of sequence in yaml is considered significant while here it's not
+                description: slice would be enough here but we cannot use slice because
+                  order of sequence in yaml is considered significant while here it's
+                  not
                 type: object
             type: object
         type: object
@@ -528,7 +715,7 @@ subjects:
   namespace: kudo-system
 
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
@@ -536,7 +723,9 @@ metadata:
   creationTimestamp: null
   name: kudo-manager-instance-admission-webhook-config
 webhooks:
-- clientConfig:
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
     service:
       name: kudo-controller-manager-service
       namespace: kudo-system
@@ -639,12 +828,12 @@ spec:
         imagePullPolicy: Always
         name: manager
         ports:
-        - containerPort: 443
+        - containerPort: 9443
           name: webhook-server
           protocol: TCP
         readinessProbe:
           tcpSocket:
-            port: 443
+            port: 9443
         resources:
           requests:
             cpu: 100m

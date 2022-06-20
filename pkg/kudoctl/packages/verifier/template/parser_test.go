@@ -1,12 +1,17 @@
 package template
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/thoas/go-funk"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestTemplate_Parameters(t *testing.T) {

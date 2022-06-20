@@ -1,8 +1,13 @@
 package renderer
 
 import (
+	"flag"
 	"fmt"
 	"testing"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestRender(t *testing.T) {

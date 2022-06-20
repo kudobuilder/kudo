@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,6 +9,10 @@ import (
 	"k8s.io/client-go/discovery"
 
 	"github.com/kudobuilder/kudo/pkg/test/fake"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func Test_isNamespaced(t *testing.T) {

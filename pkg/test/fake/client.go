@@ -63,7 +63,8 @@ func CustomCachedDiscoveryClient(additionalResources ...*metav1.APIResourceList)
 		},
 	}
 
-	resources := append(commonResources, additionalResources...)
+	resources := commonResources
+	resources = append(resources, additionalResources...)
 
 	return &CachedDiscovery{
 		FakeDiscovery: fakediscovery.FakeDiscovery{

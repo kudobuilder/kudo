@@ -1,12 +1,16 @@
 package kudo
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var _ SortableOperator = &sortableOp{}
+var (
+	_                  = flag.Bool("update", false, "update .golden files")
+	_ SortableOperator = &sortableOp{}
+)
 
 type sortableOp struct {
 	name       string

@@ -86,7 +86,7 @@ These instructions assume you haven't already initialized the cluster with previ
 Steps to run the KUDO manager outside the local cluster:
 
 1. `make generate-manifests`
-1. (separate term) `ngrok http 443`
+1. (separate term) `ngrok http https://localhost:9443`
 1. `make dev-ready`
 1. `make run`
 

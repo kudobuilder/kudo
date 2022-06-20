@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package cmd
@@ -82,21 +83,23 @@ func TestCrds_Config(t *testing.T) {
 	assertManifestFileMatch(t, instanceFileName, crds.Instance)
 }
 
-func assertManifestFileMatch(t *testing.T, fileName string, expectedObject runtime.Object) {
-	expectedContent, err := runtimeObjectAsBytes(expectedObject)
+func assertManifestFileMatch(t *testing.T, fileName string, expectedObject client.Object) {
+	expectedContent, err := clientObjectAsBytes(expectedObject)
 	assert.NoError(t, err)
 	path := filepath.Join(manifestsDir, fileName)
 	of, err := ioutil.ReadFile(path)
 	assert.NoError(t, err)
 
-	assert.Equal(t, string(expectedContent), string(of), fmt.Sprintf("embedded file %s does not match the source, run 'make generate'", fileName))
+	// Comparing the strings isn't enough because yaml.marshal can introduce different formatting. As such we need to
+	// do a YAMLEq instead to ensure the contents are the same even if the formatting isn't
+	assert.YAMLEq(t, string(expectedContent), string(of), fmt.Sprintf("embedded file %s does not match the source, run 'make generate'", fileName))
 }
 
 func assertStringContains(t *testing.T, expected string, actual string) {
 	assert.True(t, strings.Contains(actual, expected), "Expected to find '%s' in '%s'", expected, actual)
 }
 
-func runtimeObjectAsBytes(o runtime.Object) ([]byte, error) {
+func clientObjectAsBytes(o client.Object) ([]byte, error) {
 	bytes, err := yaml.Marshal(o)
 	if err != nil {
 		return nil, err
@@ -116,7 +119,7 @@ func TestIntegInitForCRDs(t *testing.T) {
 	// Verify that we cannot create the instance, because the test environment is empty.
 	assert.IsType(t, &meta.NoKindMatchError{}, testClient.Create(context.TODO(), instance))
 
-	// Install all of the CRDs.
+	// Install all the CRDs.
 	crds := crd.NewInitializer().Resources()
 
 	var buf bytes.Buffer
@@ -332,7 +335,11 @@ func TestInitWithServiceAccount(t *testing.T) {
 				if rbNamespace == "" {
 					rbNamespace = namespace
 				}
-				crb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", rbNamespace, tt.serviceAccount, tt.roleBindingRole)
+				runtimeCrb := testutils.NewClusterRoleBinding("rbac.authorization.k8s.io/v1", "ClusterRoleBinding", "kudo-clusterrole-binding", rbNamespace, tt.serviceAccount, tt.roleBindingRole)
+				crb, implementsClientObject := runtimeCrb.(client.Object)
+				if !implementsClientObject {
+					assert.Error(t, nil, "Was not of type client.Object")
+				}
 				assert.NoError(t, testClient.Create(context.TODO(), crb))
 				defer func() {
 					assert.NoError(t, testClient.Delete(context.TODO(), crb))
@@ -424,31 +431,37 @@ func TestReInitFails(t *testing.T) {
 	assertStringContains(t, "CRD operators.kudo.dev is already installed. Did you mean to use --upgrade?", errBuf.String())
 }
 
-func deleteObjects(objs []runtime.Object, client *testutils.RetryClient) error {
+func deleteObjects(objs []client.Object, client *testutils.RetryClient) error {
 	for _, obj := range objs {
 		if err := client.Delete(context.TODO(), obj); err != nil {
 			return err
 		}
 	}
 
-	return testutils.WaitForDelete(client, objs)
+	// TODO: Is there a better way to do this conversion
+	runtimeObjs := []runtime.Object{}
+	for _, obj := range objs {
+		runtimeObjs = append(runtimeObjs, obj)
+	}
+
+	return testutils.WaitForDelete(client, runtimeObjs)
 }
 
-func deleteInitPrereqs(cmd *initCmd, client *testutils.RetryClient) error {
+func deleteInitPrereqs(cmd *initCmd, retryClient *testutils.RetryClient) error {
 	opts := kudoinit.NewOptions(cmd.version, cmd.ns, cmd.serviceAccount, cmd.upgrade, cmd.selfSignedWebhookCA)
 
-	objs := append([]runtime.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
+	objs := append([]client.Object{}, prereq.NewWebHookInitializer(opts).Resources()...)
 	objs = append(objs, prereq.NewServiceAccountInitializer(opts).Resources()...)
 	objs = append(objs, crd.NewInitializer().Resources()...)
 
 	// Namespaced resources aren't waited on after deletion because they aren't GC'ed in this test environment.
 	for _, ns := range prereq.NewNamespaceInitializer(opts).Resources() {
-		if err := client.Delete(context.TODO(), ns); err != nil {
+		if err := retryClient.Delete(context.TODO(), ns); err != nil {
 			return err
 		}
 	}
 
-	return deleteObjects(objs, client)
+	return deleteObjects(objs, retryClient)
 }
 
 func getKubeClient(t *testing.T) *kube.Client {

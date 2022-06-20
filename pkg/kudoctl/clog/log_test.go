@@ -2,9 +2,14 @@ package clog
 
 import (
 	"bytes"
+	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestLevelCheck(t *testing.T) {

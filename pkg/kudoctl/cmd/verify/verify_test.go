@@ -1,12 +1,17 @@
 package verify
 
 import (
+	"flag"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestDuplicateVerifier(t *testing.T) {

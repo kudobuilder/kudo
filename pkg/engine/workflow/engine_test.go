@@ -1,15 +1,16 @@
 package workflow
 
 import (
+	"flag"
 	"reflect"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
@@ -18,7 +19,10 @@ import (
 	kudofake "github.com/kudobuilder/kudo/pkg/test/fake"
 )
 
-var testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
+var (
+	testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
+	_        = flag.Bool("update", false, "update .golden files")
+)
 
 func TestExecutePlan(t *testing.T) {
 	instance := instance()
@@ -661,6 +665,6 @@ func instance() *kudoapi.Instance {
 
 type testEnhancer struct{}
 
-func (k *testEnhancer) Apply(objs []runtime.Object, metadata renderer.Metadata) ([]runtime.Object, error) {
+func (k *testEnhancer) Apply(objs []client.Object, metadata renderer.Metadata) ([]client.Object, error) {
 	return objs, nil
 }

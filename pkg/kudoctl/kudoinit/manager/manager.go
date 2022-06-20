@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	client2 "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -157,8 +158,8 @@ func (m *Initializer) installService(client *kube.Client) error {
 	return nil
 }
 
-func (m *Initializer) Resources() []runtime.Object {
-	return []runtime.Object{m.service, m.deployment}
+func (m *Initializer) Resources() []client.Object {
+	return []client.Object{m.service, m.deployment}
 }
 
 // GenerateLabels returns the labels used by deployment and service
@@ -203,14 +204,14 @@ func generateDeployment(opts kudoinit.Options) *appsv1.StatefulSet {
 							Name:            kudoinit.ManagerContainerName,
 							Ports: []corev1.ContainerPort{
 								// name matters for service
-								{ContainerPort: 443, Name: "webhook-server", Protocol: "TCP"},
+								{ContainerPort: 9443, Name: "webhook-server", Protocol: "TCP"},
 							},
 							// Prefer for StartupProbe, however that requires 1.16
 							// ReadinessProbe defaults: failureThreshold: 3, periodSeconds: 10, successThreshold: 1, timeoutSeconds: 1
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									TCPSocket: &corev1.TCPSocketAction{
-										Port: intstr.FromInt(443),
+										Port: intstr.FromInt(9443),
 									},
 								},
 							},
@@ -260,7 +261,7 @@ func generateService(opts kudoinit.Options) *corev1.Service {
 			Ports: []corev1.ServicePort{
 				{
 					Name:       "kudo",
-					Port:       443,
+					Port:       443, // Note: If changing this it also needs to be changed in kudoinit/prereq/webhook.go
 					TargetPort: intstr.FromString("webhook-server")},
 			},
 			Selector: managerLabels,

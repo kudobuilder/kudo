@@ -43,10 +43,10 @@ func (r *Reconciler) SetupWithManager(
 // Reconcile reads that state of the cluster for an Operator object and makes changes based on the state read
 // and what is in the Operator.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-func (r *Reconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	// Fetch the operator
 	operator := &kudoapi.Operator{}
-	err := r.Get(context.TODO(), request.NamespacedName, operator)
+	err := r.Get(ctx, request.NamespacedName, operator)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Object not found, return.  Created objects are automatically garbage collected.

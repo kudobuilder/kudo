@@ -3,6 +3,7 @@ package writer
 import (
 	"archive/tar"
 	"compress/gzip"
+	"flag"
 	"io"
 	"path/filepath"
 	"testing"
@@ -14,6 +15,10 @@ import (
 )
 
 const expectedTarballSHA = "a7137cf3c640eb28c7a80f8e4f4d24792cbd3f59ae4d8d11bc9ea83ef79d7d92"
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
+)
 
 func TestRegularFileTarball(t *testing.T) {
 	var fs = afero.NewMemMapFs()

@@ -2,6 +2,7 @@ package kudo
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"reflect"
 	"testing"
@@ -24,6 +25,10 @@ import (
 )
 
 const installNamespace = "default"
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
+)
 
 func newTestSimpleK2o() *Client {
 	return NewClientFromK8s(fake.NewSimpleClientset(), kubefake.NewSimpleClientset())

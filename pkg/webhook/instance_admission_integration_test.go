@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package webhook
@@ -8,15 +9,13 @@ import (
 	"log"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	ctrhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -28,7 +27,7 @@ import (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "Webhook Test Suite", []Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "Webhook Test Suite")
 }
 
 var env *envtest.Environment
@@ -43,7 +42,7 @@ var _ = BeforeSuite(func() {
 	iaw := prereq.InstanceAdmissionWebhook(v1.NamespaceDefault)
 	instanceAdmissionWebhookPath = *iaw.Webhooks[0].ClientConfig.Service.Path
 
-	env.WebhookInstallOptions = envtest.WebhookInstallOptions{MutatingWebhooks: []runtime.Object{&iaw}}
+	env.WebhookInstallOptions = envtest.WebhookInstallOptions{MutatingWebhooks: []client.Object{&iaw}}
 
 	// 2. add KUDO CRDs
 	log.Print("test.BeforeSuite: initializing CRDs")
@@ -51,22 +50,25 @@ var _ = BeforeSuite(func() {
 
 	_, err := env.Start()
 	Expect(err).NotTo(HaveOccurred())
-}, envtest.StartTimeout)
+})
 
 var _ = AfterSuite(func() {
 	Expect(env.Stop()).NotTo(HaveOccurred())
-}, envtest.StopTimeout)
+})
 
 var _ = Describe("Test", func() {
 
 	var defaultTimeout float64 = 5 // seconds
 
 	var c client.Client
-	var stop chan struct{}
+	var cancelCtx context.CancelFunc
 
 	// every test case gets it's own manager and client instances. not sure if that's the best
 	// practice but it  seems to be fast enough.
 	BeforeEach(func() {
+		var ctx context.Context
+		ctx, cancelCtx = context.WithCancel(context.Background())
+
 		// 1. initializing manager
 		log.Print("test.BeforeEach: initializing manager")
 		mgr, err := manager.New(env.Config, manager.Options{
@@ -94,15 +96,15 @@ var _ = Describe("Test", func() {
 		server.Register(instanceAdmissionWebhookPath, &ctrhook.Admission{Handler: &InstanceAdmission{client: c}})
 
 		// 5. starting the manager
-		stop = make(chan struct{})
 		go func() {
-			err = mgr.Start(stop)
+			log.Print("starting manager")
+			err = mgr.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 		}()
 	})
 
 	AfterEach(func() {
-		close(stop)
+		cancelCtx()
 	})
 
 	deploy := kudoapi.DeployPlanName
@@ -141,7 +143,9 @@ var _ = Describe("Test", func() {
 		},
 	}
 
-	Describe("Instance admission controller", func() {
+	// These need to run sequential (not necessarily in order) because otherwise the manager startup tries to bind
+	// to the same port at the same time on multiple tests resulting in an error
+	Describe("Instance admission controller", Serial, func() {
 		var key client.ObjectKey
 
 		It("should allow instance creation", func() {
@@ -291,9 +295,8 @@ var _ = Describe("Test", func() {
 
 // keyFrom method is a small helper method to retrieve an ObjectKey from the given object. Meant to be used within this test class
 // only as it will fail the test should an error occur.
-func keyFrom(obj runtime.Object) client.ObjectKey {
-	key, err := client.ObjectKeyFromObject(obj)
-	Expect(err).NotTo(HaveOccurred())
+func keyFrom(obj client.Object) client.ObjectKey {
+	key := client.ObjectKeyFromObject(obj)
 	return key
 }
 

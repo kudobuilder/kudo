@@ -9,7 +9,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kudobuilder/kudo/pkg/engine/resource"
@@ -58,7 +57,7 @@ func (dt DeleteTask) Run(ctx Context) (bool, error) {
 	return allObjsDeleted(ctx, objs)
 }
 
-func allObjsDeleted(ctx Context, objs []runtime.Object) (bool, error) {
+func allObjsDeleted(ctx Context, objs []client.Object) (bool, error) {
 	for _, obj := range objs {
 		objDeleted, _, err := status.IsDeleted(ctx.Client, ctx.Discovery, obj)
 		if err != nil {
@@ -72,8 +71,8 @@ func allObjsDeleted(ctx Context, objs []runtime.Object) (bool, error) {
 	return true, nil
 }
 
-func filterUnknownObjectTypes(objs []runtime.Object, ctx Context) ([]runtime.Object, error) {
-	knownObjs := make([]runtime.Object, 0)
+func filterUnknownObjectTypes(objs []client.Object, ctx Context) ([]client.Object, error) {
+	knownObjs := make([]client.Object, 0)
 	for _, o := range objs {
 		isKnown, err := resource.IsKnownObjectType(o, ctx.Discovery)
 		if err != nil {
@@ -86,7 +85,7 @@ func filterUnknownObjectTypes(objs []runtime.Object, ctx Context) ([]runtime.Obj
 	return knownObjs, nil
 }
 
-func deleteResource(ro []runtime.Object, c client.Client) error {
+func deleteResource(ro []client.Object, c client.Client) error {
 	for _, r := range ro {
 		err := c.Delete(context.TODO(), r, client.PropagationPolicy(metav1.DeletePropagationForeground))
 		if !apierrors.IsNotFound(err) && err != nil {

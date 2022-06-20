@@ -3,9 +3,8 @@ package prereq
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

@@ -29,6 +29,7 @@ import (
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery/cached/memory"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/azure"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -163,7 +164,8 @@ func main() {
 	// Add more webhooks below using the above registerWebhook method
 
 	// Start the KUDO manager
-	log.Print("Done! Everything is setup, starting KUDO manager now")
+
+	log.Printf("Done! Everything is setup, starting KUDO manager now on port: %d", mgr.GetWebhookServer().Port)
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Printf("Unable to run the manager: %v", err)
 		os.Exit(1)

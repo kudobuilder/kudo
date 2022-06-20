@@ -163,9 +163,9 @@ KUDO_CERT_DIR=./test/cert/ make run
 
 2. Install ngrok: https://ngrok.com/ and run a local tunnel on the port 443 which will give you an url to your local machine:
 ```shell script
- ❯ ngrok http 443
+ ❯ ngrok http https://localhost:9443
   ...
-  Forwarding                    https://ff6b2dd5.ngrok.io -> https://localhost:443
+  Forwarding                    https://ff6b2dd5.ngrok.io -> https://localhost:9443
 ```
 **note:** ngrok requires [registration]( https://ngrok.com/signup) in order to run against port 443.
 

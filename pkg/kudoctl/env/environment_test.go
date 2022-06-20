@@ -1,6 +1,7 @@
 package env
 
 import (
+	"flag"
 	"os"
 	"strings"
 	"testing"
@@ -8,6 +9,10 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudohome"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestEnvSettings(t *testing.T) {

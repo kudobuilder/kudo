@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"flag"
 	"log"
 	"testing"
 	"time"
@@ -13,6 +14,10 @@ import (
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/util/convert"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestValidateUpdate(t *testing.T) {

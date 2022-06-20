@@ -15,11 +15,8 @@ import (
 // ObjectKeyFromObject method wraps client.ObjectKeyFromObject method by additionally checking if passed object is
 // a cluster-scoped resource (e.g. CustomResourceDefinition, ClusterRole etc.) and removing the namespace from the
 // key since cluster-scoped resources are not namespaced.
-func ObjectKeyFromObject(r runtime.Object, di discovery.CachedDiscoveryInterface) (client.ObjectKey, error) {
-	key, err := client.ObjectKeyFromObject(r)
-	if err != nil {
-		return client.ObjectKey{}, fmt.Errorf("failed to get an object key from object %v: %v", r.GetObjectKind(), err)
-	}
+func ObjectKeyFromObject(r client.Object, di discovery.CachedDiscoveryInterface) (client.ObjectKey, error) {
+	key := client.ObjectKeyFromObject(r)
 
 	// if the resource is cluster-scoped we need to clear then namespace from the key
 	isNamespaced, err := IsNamespacedObject(r, di)
