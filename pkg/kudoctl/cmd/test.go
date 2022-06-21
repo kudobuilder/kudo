@@ -14,6 +14,7 @@ import (
 	testutils "github.com/kudobuilder/kuttl/pkg/test/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var (
@@ -87,10 +88,23 @@ For more detailed documentation, visit: https://kudo.dev/docs/testing`,
 
 				for _, obj := range objects {
 					kind := obj.GetObjectKind().GroupVersionKind().Kind
+					group := obj.GetObjectKind().GroupVersionKind().Group
 
-					if kind == "TestSuite" {
+					switch {
+					case group == "kudo.dev" && kind == "TestSuite":
+						// NOTE: Kuttl only converts when the group is kuttl.dev. So to support older TestSuite
+						// definitions we need convert TestSuite definitions with the kudo.dev group.
+						unstruct, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+						if err != nil {
+							log.Println(fmt.Errorf("unknown object type: %s", kind))
+						}
+						err = runtime.DefaultUnstructuredConverter.FromUnstructured(unstruct, &options)
+						if err != nil {
+							log.Println(fmt.Errorf("unknown object type: %s", kind))
+						}
+					case kind == "TestSuite":
 						options = *obj.(*harness.TestSuite)
-					} else {
+					default:
 						log.Println(fmt.Errorf("unknown object type: %s", kind))
 					}
 				}
