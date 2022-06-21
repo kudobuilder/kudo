@@ -3,6 +3,7 @@ kind: TestSuite
 testDirs:
 - ./test/upgrade
 startKIND: true
+kindConfig: ./test/kind.yaml
 kindContainers:
 - kudobuilder/controller:%version%
 timeout: 300
