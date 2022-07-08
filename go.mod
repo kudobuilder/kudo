@@ -92,7 +92,6 @@ require (
 	github.com/imdario/mergo v0.3.10 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/jstemmer/go-junit-report v1.0.0 // indirect
 	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a // indirect
 	github.com/kisielk/errcheck v1.5.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
