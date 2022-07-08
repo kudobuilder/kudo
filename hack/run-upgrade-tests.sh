@@ -19,7 +19,7 @@ if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
     echo "Running Upgrade tests with junit output"
     mkdir -p reports/
-    go install github.com/jstemmer/go-junit-report$(go list -f '{{.Version}}' -m github.com/jstemmer/go-junit-report)
+    go install github.com/jstemmer/go-junit-report@$(go list -f '{{.Version}}' -m github.com/jstemmer/go-junit-report)
 
     ./bin/kubectl-kudo test --config test/kudo-upgrade-test.yaml ${TEST_ONLY} 2>&1 \
         | tee /dev/fd/2 \

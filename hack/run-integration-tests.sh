@@ -19,7 +19,7 @@ if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
     echo "Running go integration tests with junit output"
     mkdir -p reports/
-    go install github.com/jstemmer/go-junit-report$(go list -f '{{.Version}}' -m github.com/jstemmer/go-junit-report)
+    go install github.com/jstemmer/go-junit-report@$(go list -f '{{.Version}}' -m github.com/jstemmer/go-junit-report)
     go test -tags integration ./pkg/... ./cmd/... -v ${MOD_FLAGS} -coverprofile cover-integration.out 2>&1 |tee /dev/fd/2 |go-junit-report -set-exit-code > reports/integration_report.xml
 else
     echo "Running integration tests without junit output"
