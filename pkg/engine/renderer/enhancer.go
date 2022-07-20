@@ -19,7 +19,7 @@ import (
 // and annotations
 // it also takes care of setting an owner of all the resources to the provided object
 type Enhancer interface {
-	Apply(objs []runtime.Object, metadata Metadata) ([]runtime.Object, error)
+	Apply(objs []client.Object, metadata Metadata) ([]client.Object, error)
 }
 
 // DefaultEnhancer is implementation of Enhancer that applies the defined conventions by directly editing runtime.Objects (Unstructured).
@@ -31,7 +31,7 @@ type DefaultEnhancer struct {
 
 // Apply accepts templates to be rendered in kubernetes and enhances them with our own KUDO conventions
 // These include the way we name our objects and what labels we apply to them
-func (de *DefaultEnhancer) Apply(sourceObjs []runtime.Object, metadata Metadata) ([]runtime.Object, error) {
+func (de *DefaultEnhancer) Apply(sourceObjs []client.Object, metadata Metadata) ([]client.Object, error) {
 	unstructuredObjs := make([]*unstructured.Unstructured, 0, len(sourceObjs))
 
 	for _, obj := range sourceObjs {
@@ -99,8 +99,8 @@ func (de *DefaultEnhancer) addDependenciesHashes(unstructuredObjs []*unstructure
 	return nil
 }
 
-func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstructured) ([]runtime.Object, error) {
-	objs := make([]runtime.Object, 0, len(unstructuredObjs))
+func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstructured) ([]client.Object, error) {
+	objs := make([]client.Object, 0, len(unstructuredObjs))
 	for _, uo := range unstructuredObjs {
 		obj, err := de.Scheme.New(uo.GroupVersionKind())
 		if err != nil {
@@ -113,7 +113,11 @@ func (de *DefaultEnhancer) convertToTyped(unstructuredObjs []*unstructured.Unstr
 			return nil, fmt.Errorf("%wconverting from unstructured failed: %v", engine.ErrFatalExecution, err)
 		}
 
-		objs = append(objs, obj)
+		clientObj, implementsClientObject := obj.(client.Object)
+		if !implementsClientObject {
+			return nil, fmt.Errorf("%wruntime.Object converted from unstructured does not implement client.Object", engine.ErrFatalExecution)
+		}
+		objs = append(objs, clientObj)
 	}
 	return objs, nil
 }
@@ -178,7 +182,8 @@ func addMapValues(obj map[string]interface{}, fieldsToAdd map[string]string, pat
 		if strings.HasSuffix(p, "[]") {
 			sliceField := strings.TrimSuffix(p, "[]")
 
-			subPath := append(path[0:i], sliceField)
+			subPath := path[0:i]
+			subPath = append(subPath, sliceField)
 			remainingPath := path[i+1:]
 
 			unstructuredSlice, found, err := unstructured.NestedSlice(obj, subPath...)

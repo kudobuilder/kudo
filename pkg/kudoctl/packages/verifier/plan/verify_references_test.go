@@ -1,12 +1,17 @@
 package plan
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestPlanReferenceVerifier(t *testing.T) {

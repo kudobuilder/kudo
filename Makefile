@@ -13,7 +13,7 @@ BUILD_DATE_PATH := github.com/kudobuilder/kudo/pkg/version.buildDate
 DATE_FMT := "%Y-%m-%dT%H:%M:%SZ"
 BUILD_DATE := $(shell date -u -d "@$SOURCE_DATE_EPOCH" "+${DATE_FMT}" 2>/dev/null || date -u -r "${SOURCE_DATE_EPOCH}" "+${DATE_FMT}" 2>/dev/null || date -u "+${DATE_FMT}")
 LDFLAGS := -X ${GIT_VERSION_PATH}=${GIT_VERSION:v%=%} -X ${GIT_COMMIT_PATH}=${GIT_COMMIT} -X ${BUILD_DATE_PATH}=${BUILD_DATE}
-GOLANGCI_LINT_VER = "v1.32.2"
+GOLANGCI_LINT_VER = "v1.45.2"
 SUPPORTED_PLATFORMS = amd64 arm64
 
 export GO111MODULE=on
@@ -170,11 +170,11 @@ dev-ready: ## Installs KUDO manifests and updates webhook to work with ngrok
 generate:  ## (Re)Generates CRDs and go-bindata
 ifneq ($(shell go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools), $(shell controller-gen --version 2>/dev/null | cut -b 10-))
 	@echo "(Re-)installing controller-gen. Current version:  $(controller-gen --version 2>/dev/null | cut -b 10-). Need $(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)"
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@$$(go list -f '{{.Version}}' -m sigs.k8s.io/controller-tools)
 endif
 	controller-gen crd paths=./pkg/apis/... output:crd:dir=config/crds output:stdout
 ifeq (, $(shell which go-bindata))
-	go get github.com/go-bindata/go-bindata/v3/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata/v3)
+	go install github.com/go-bindata/go-bindata/v3/go-bindata@$$(go list -f '{{.Version}}' -m github.com/go-bindata/go-bindata/v3)
 endif
 	go-bindata -pkg crd -o pkg/kudoctl/kudoinit/crd/bindata.go -ignore README.md -nometadata config/crds
 	./hack/update_codegen.sh

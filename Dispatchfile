@@ -20,7 +20,7 @@ task("lint", inputs=["git"], steps=[k8s.corev1.Container(
 
 task("integration-test", inputs=["git"], steps=[k8s.corev1.Container(
   name="integration-test",
-  image="kudobuilder/golang:1.15",
+  image="kudobuilder/golang:1.18",
   command=[ "make", "integration-test" ],
   env=[
     k8s.corev1.EnvVar(name="INTEGRATION_OUTPUT_JUNIT", value="true"),

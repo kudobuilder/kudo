@@ -9,7 +9,6 @@ fi
 
 CODE=$(curl -s -o /dev/null -w "%{http_code}" localhost:4040)
 
-
 case "$CODE" in 
     "000") 
         echo "ngrok server is not up."
@@ -27,7 +26,8 @@ fi
 #  need to update the webhook url to the current tunnel.  ngrok array order changes requiring a tunnel select for https and pull the public_url of that tunnel
 #  template webfile located at: config/admit-wh.yaml relative to the project root
 #  this script requires "update-manifests.sh" to run first
-yq  w hack/manifest-gen/kudo-manager-instance-admission-webhook-config.yaml webhooks[0].clientConfig.url "$(curl -s localhost:4040/api/tunnels | jq '.tunnels[] | select(.proto == "https") | .public_url' -r)/admit-kudo-dev-v1beta1-instance" | kubectl apply -f -
+URL="$(curl -s localhost:4040/api/tunnels | jq '.tunnels[] | select(.proto == "https") | .public_url' -r)/admit-kudo-dev-v1beta1-instance"
+yq ".webhooks[0].clientConfig.url = \"$URL\"" hack/manifest-gen/kudo-manager-instance-admission-webhook-config.yaml | kubectl apply -f -
 
 # debug notes:  This kubectl apply will fail if a kudo init creates a webhook with a clientConfig.service.  By adding  a clientConfig.url it creates a service and url which is not valid
 RESULT=$?

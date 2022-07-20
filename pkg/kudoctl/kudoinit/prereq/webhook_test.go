@@ -1,6 +1,7 @@
 package prereq
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,10 @@ import (
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kube"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/kudoinit"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/verifier"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestPrereq_Ok_PreValidate_Webhook_None(t *testing.T) {

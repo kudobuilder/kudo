@@ -16,6 +16,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"flag"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 
 var (
 	testTime = time.Date(2019, 10, 17, 1, 1, 1, 1, time.UTC)
+	_        = flag.Bool("update", false, "update .golden files")
 )
 
 func TestGetLastExecutedPlanStatus(t *testing.T) {

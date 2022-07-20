@@ -1,7 +1,12 @@
 package http
 
 import (
+	"flag"
 	"testing"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestIsValidURL(t *testing.T) {

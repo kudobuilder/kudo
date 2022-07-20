@@ -28,7 +28,7 @@ if [ "$INTEGRATION_OUTPUT_JUNIT" == true ]
 then
     echo "Running operator tests with junit output"
     mkdir -p reports/
-    go get github.com/jstemmer/go-junit-report
+    go install github.com/jstemmer/go-junit-report@$(go list -f '{{.Version}}' -m github.com/jstemmer/go-junit-report)
 
     cd operators && ./bin/kubectl-kudo test --artifacts-dir ../reports/kind-logs 2>&1 \
         | tee /dev/fd/2 \

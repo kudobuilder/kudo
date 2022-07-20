@@ -1,9 +1,14 @@
 package version
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func Test_validVersion(t *testing.T) {

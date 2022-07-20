@@ -49,7 +49,7 @@ func TestToggleTask_Run(t *testing.T) {
 			wantErr: true,
 			fatal:   true,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -69,7 +69,7 @@ func TestToggleTask_Run(t *testing.T) {
 				Parameters: map[string]interface{}{
 					"feature-enabled": "true",
 				},
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -89,7 +89,7 @@ func TestToggleTask_Run(t *testing.T) {
 				Parameters: map[string]interface{}{
 					"feature-enabled": "true",
 				},
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -145,7 +145,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 				Parameters: map[string]interface{}{
 					"feature-enabled": "true",
 				},
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      renderer.Metadata{},
@@ -165,7 +165,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 				Parameters: map[string]interface{}{
 					"feature-enabled": "false",
 				},
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      renderer.Metadata{},
@@ -185,7 +185,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 				Parameters: map[string]interface{}{
 					"feature-enabled": "notABooleanValue",
 				},
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -205,7 +205,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 				Parameters: map[string]interface{}{
 					"feature-enabled": "",
 				},
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -224,7 +224,7 @@ func TestToggleTask_intermediateTask(t *testing.T) {
 				Parameters: map[string]interface{}{
 					"feature-enabled": "someValue",
 				},
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,

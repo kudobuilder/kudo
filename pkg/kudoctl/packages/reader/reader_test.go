@@ -1,6 +1,7 @@
 package reader
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,6 +16,10 @@ import (
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestReadFileSystemPackage(t *testing.T) {

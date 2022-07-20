@@ -1,6 +1,7 @@
 package upgrade
 
 import (
+	"flag"
 	"fmt"
 	"strings"
 	"testing"
@@ -21,6 +22,10 @@ import (
 
 const (
 	installNamespace = "default"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func Test_UpgradeOperatorVersion(t *testing.T) {

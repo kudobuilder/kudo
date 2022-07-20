@@ -1,6 +1,7 @@
 package dependencies
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -14,6 +15,10 @@ import (
 	engtask "github.com/kudobuilder/kudo/pkg/engine/task"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/packages"
 	pkgresolver "github.com/kudobuilder/kudo/pkg/kudoctl/packages/resolver"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 type nameResolver struct {

@@ -1,12 +1,17 @@
 package task
 
 import (
+	"flag"
 	"reflect"
 	"testing"
 
 	"sigs.k8s.io/yaml"
 
 	kudoapi "github.com/kudobuilder/kudo/pkg/apis/kudo/v1beta1"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestBuild(t *testing.T) {

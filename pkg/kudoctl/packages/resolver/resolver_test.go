@@ -1,11 +1,16 @@
 package resolver
 
 import (
+	"flag"
 	"os"
 	"testing"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 func TestManager_GetPackage(t *testing.T) {

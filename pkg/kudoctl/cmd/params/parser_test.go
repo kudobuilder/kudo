@@ -1,11 +1,16 @@
 package params
 
 import (
+	"flag"
 	"os"
 	"testing"
 
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	_ = flag.Bool("update", false, "update .golden files")
 )
 
 var parameterParsingTests = []struct {

@@ -34,11 +34,11 @@ cd - || exit
 #  loop through all the files
 for f in "$TEMP"/*.txt; 
 do 
-    KIND=$(yq r "$f" kind)
+    KIND=$(yq '.kind' "$f")
 
 case "$KIND" in 
     "CustomResourceDefinition") 
-        NAME=$(yq r "$f" spec.names.kind)
+        NAME=$(yq '.spec.names.kind' "$f")
         echo "skip '$NAME' crd"
         continue;;
 
@@ -59,7 +59,7 @@ case "$KIND" in
         KIND="";;        
 esac
 
-NAME=$(yq r "$f" metadata.name)
+NAME=$(yq '.metadata.name' "$f")
 
 if [ -n "$KIND" ]
 then
@@ -73,9 +73,9 @@ cp "$f" "$MANCACHE/$NAME"
 done
 
 # update webhook (add config.url and remove config.caBundle and config.service)
-yq w -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml" webhooks[0].clientConfig.url https://replace-url.com
-yq d -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml" webhooks[0].clientConfig.caBundle
-yq d -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml" webhooks[0].clientConfig.service
+yq '.webhooks[0].clientConfig.url = "https://replace-url.com"' -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml"
+yq 'del(.webhooks[0].clientConfig.caBundle)' -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml"
+yq 'del(.webhooks[0].clientConfig.service)' -i "$MANCACHE/kudo-manager-instance-admission-webhook-config.yaml"
 
 rm -rf "$TEMP"
 echo "Finished"

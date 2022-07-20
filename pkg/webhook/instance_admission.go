@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"reflect"
 
+	admissionv1 "k8s.io/api/admission/v1"
+
 	"github.com/thoas/go-funk"
-	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/rest"
@@ -46,10 +47,10 @@ func (ia *InstanceAdmission) Handle(ctx context.Context, req admission.Request) 
 
 	switch req.Operation {
 
-	case v1beta1.Create:
+	case admissionv1.Create:
 		return handleCreate(ia, req)
 
-	case v1beta1.Update:
+	case admissionv1.Update:
 		// req has both old and new Instance objects
 		return handleUpdate(ia, req)
 
@@ -229,7 +230,8 @@ func admitUpdate(old, new *kudoapi.Instance, ov, oldOv *kudoapi.OperatorVersion)
 		return nil, fmt.Errorf("failed to validate parameters for Instance %s/%s: %v", new.Namespace, new.Name, err)
 	}
 
-	updatedParameterDefs := append(changedDefs, removedDefs...)
+	updatedParameterDefs := changedDefs
+	updatedParameterDefs = append(updatedParameterDefs, removedDefs...)
 	triggeredPlan, err := triggeredByParameterUpdate(updatedParameterDefs, ov)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update Instance %s/%s: %v", old.Namespace, old.Name, err)

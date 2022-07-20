@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/kubectl/pkg/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/kudobuilder/kudo/pkg/engine"
@@ -25,7 +26,7 @@ import (
 
 func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
-	tpls := []runtime.Object{
+	tpls := []client.Object{
 		statefulSet("sfs1", "default"),
 	}
 
@@ -70,7 +71,7 @@ func TestEnhancerApply_embeddedMetadataStatefulSet(t *testing.T) {
 
 func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 
-	tpls := []runtime.Object{
+	tpls := []client.Object{
 		cronjob("cronjob", "default"),
 	}
 
@@ -111,7 +112,7 @@ func TestEnhancerApply_embeddedMetadataCronjob(t *testing.T) {
 
 func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 
-	tpls := []runtime.Object{
+	tpls := []client.Object{
 		pod("pod", "default"),
 		unstructuredCrd("crd", "default"),
 	}
@@ -155,7 +156,7 @@ func TestEnhancerApply_noAdditionalMetadata(t *testing.T) {
 func TestEnhancerApply_dependencyHash_noDependencies(t *testing.T) {
 	ss := statefulSet("statefulset", "default")
 
-	tpls := []runtime.Object{ss}
+	tpls := []client.Object{ss}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
@@ -198,13 +199,13 @@ func TestEnhancerApply_dependencyHash_unavailableResource(t *testing.T) {
 		},
 	})
 
-	tpls := []runtime.Object{ss}
+	tpls := []client.Object{ss}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
 
 	e := &DefaultEnhancer{
-		Client:    clientfake.NewFakeClientWithScheme(scheme.Scheme),
+		Client:    clientfake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 		Scheme:    utils.Scheme(),
 		Discovery: fake.CachedDiscoveryClient(),
 	}
@@ -244,7 +245,7 @@ func TestEnhancerApply_dependencyHash_calculatedOnResourceWithoutLastAppliedConf
 		},
 	})
 
-	tpls := []runtime.Object{ss}
+	tpls := []client.Object{ss}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
@@ -287,7 +288,7 @@ func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
 		},
 	})
 
-	tpls := []runtime.Object{ss, cm}
+	tpls := []client.Object{ss, cm}
 
 	meta := metadata()
 	meta.PlanUID = uuid.NewUUID()
@@ -316,7 +317,7 @@ func TestEnhancerApply_dependencyHash_changes(t *testing.T) {
 	assert.NotNil(t, hash, "Pod template spec annotations contains no dependency hash field")
 
 	cm.Data["newkey"] = "newvalue"
-	tpls = []runtime.Object{ss, cm}
+	tpls = []client.Object{ss, cm}
 
 	objs, err = e.Apply(tpls, meta)
 	assert.Nil(t, err)
@@ -485,7 +486,7 @@ func pod(name string, namespace string) *corev1.Pod {
 	return pod
 }
 
-func unstructuredCrd(name string, namespace string) runtime.Object {
+func unstructuredCrd(name string, namespace string) client.Object {
 	data := `apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 metadata:

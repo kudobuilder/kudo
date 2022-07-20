@@ -7,18 +7,18 @@ import (
 	"strings"
 
 	"github.com/thoas/go-funk"
-	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	clientv1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
+	clientv1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	kubeutils "github.com/kudobuilder/kudo/pkg/kubernetes"
 	"github.com/kudobuilder/kudo/pkg/kubernetes/status"
@@ -121,7 +121,7 @@ func (k *KudoWebHook) verifyWithCertManager(client *kube.Client, result *verifie
 	if err := validateUnstructuredInstallation(client.DynamicClient, k.certificate, result); err != nil {
 		return err
 	}
-	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup), result); err != nil {
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1(), instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup), result); err != nil {
 		return err
 	}
 	return nil
@@ -133,7 +133,7 @@ func (k *KudoWebHook) verifyWithSelfSignedCA(client *kube.Client, result *verifi
 		return nil
 	}
 
-	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1beta1(), *iaw, result); err != nil {
+	if err := validateAdmissionWebhookInstallation(client.KubeClient.AdmissionregistrationV1(), *iaw, result); err != nil {
 		return err
 	}
 	if err := validateWebhookSecretInstallation(client.KubeClient, *s, result); err != nil {
@@ -149,7 +149,7 @@ func (k *KudoWebHook) installWithCertManager(client *kube.Client) error {
 	if err := installUnstructured(client.DynamicClient, k.certificate); err != nil {
 		return err
 	}
-	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup)); err != nil {
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1(), instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup)); err != nil {
 		return err
 	}
 	return nil
@@ -161,7 +161,7 @@ func (k *KudoWebHook) installWithSelfSignedCA(client *kube.Client) error {
 		return nil
 	}
 
-	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1beta1(), *iaw); err != nil {
+	if err := installAdmissionWebhook(client.KubeClient.AdmissionregistrationV1(), *iaw); err != nil {
 		return err
 	}
 
@@ -192,28 +192,28 @@ func (k *KudoWebHook) UninstallWebHook(client *kube.Client) error {
 	return nil
 }
 
-func (k *KudoWebHook) Resources() []runtime.Object {
+func (k *KudoWebHook) Resources() []client.Object {
 	if k.opts.SelfSignedWebhookCA {
 		iaw, s, err := k.resourcesWithSelfSignedCA()
 		if err != nil {
 			panic(err)
 		}
-		return []runtime.Object{iaw, s}
+		return []client.Object{iaw, s}
 
 	}
 
 	return k.resourcesWithCertManager()
 }
 
-func (k *KudoWebHook) resourcesWithCertManager() []runtime.Object {
+func (k *KudoWebHook) resourcesWithCertManager() []client.Object {
 	av := instanceAdmissionWebhookCertManager(k.opts.Namespace, k.certManagerGroup)
-	objs := []runtime.Object{&av}
+	objs := []client.Object{&av}
 	objs = append(objs, k.issuer)
 	objs = append(objs, k.certificate)
 	return objs
 }
 
-func (k *KudoWebHook) resourcesWithSelfSignedCA() (*admissionv1beta1.MutatingWebhookConfiguration, *corev1.Secret, error) {
+func (k *KudoWebHook) resourcesWithSelfSignedCA() (*admissionv1.MutatingWebhookConfiguration, *corev1.Secret, error) {
 	tinyCA, err := NewTinyCA(kudoinit.DefaultServiceName, k.opts.Namespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to set up webhook CA: %v", err)
@@ -417,7 +417,7 @@ func validateUnstructuredInstallation(dynamicClient dynamic.Interface, item *uns
 	return nil
 }
 
-func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration) error {
+func installAdmissionWebhook(client clientv1.MutatingWebhookConfigurationsGetter, webhook admissionv1.MutatingWebhookConfiguration) error {
 	_, err := client.MutatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	if kerrors.IsAlreadyExists(err) {
 		clog.V(4).Printf("admission webhook %v already registered", webhook.Name)
@@ -426,7 +426,7 @@ func installAdmissionWebhook(client clientv1beta1.MutatingWebhookConfigurationsG
 	return err
 }
 
-func validateAdmissionWebhookInstallation(client clientv1beta1.MutatingWebhookConfigurationsGetter, webhook admissionv1beta1.MutatingWebhookConfiguration, result *verifier.Result) error {
+func validateAdmissionWebhookInstallation(client clientv1.MutatingWebhookConfigurationsGetter, webhook admissionv1.MutatingWebhookConfiguration, result *verifier.Result) error {
 	_, err := client.MutatingWebhookConfigurations().Get(context.TODO(), webhook.Name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -467,13 +467,13 @@ func validateWebhookSecretInstallation(client kubernetes.Interface, secret corev
 	return nil
 }
 
-func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1beta1.MutatingWebhookConfiguration {
+func instanceAdmissionWebhookWithCABundle(ns string, caData []byte) admissionv1.MutatingWebhookConfiguration {
 	iaw := InstanceAdmissionWebhook(ns)
 	iaw.Webhooks[0].ClientConfig.CABundle = caData
 	return iaw
 }
 
-func instanceAdmissionWebhookCertManager(ns string, certManagerGroup string) admissionv1beta1.MutatingWebhookConfiguration {
+func instanceAdmissionWebhookCertManager(ns string, certManagerGroup string) admissionv1.MutatingWebhookConfiguration {
 	iaw := InstanceAdmissionWebhook(ns)
 	injectCaAnnotationName := fmt.Sprintf("%s/inject-ca-from", certManagerGroup)
 	iaw.Annotations[injectCaAnnotationName] = fmt.Sprintf("%s/kudo-webhook-server-certificate", ns)
@@ -481,27 +481,27 @@ func instanceAdmissionWebhookCertManager(ns string, certManagerGroup string) adm
 }
 
 // InstanceAdmissionWebhook returns a MutatingWebhookConfiguration for the instance admission controller.
-func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfiguration {
-	namespacedScope := admissionv1beta1.NamespacedScope
-	failedType := admissionv1beta1.Fail
-	equivalentType := admissionv1beta1.Equivalent
-	noSideEffects := admissionv1beta1.SideEffectClassNone
-	return admissionv1beta1.MutatingWebhookConfiguration{
+func InstanceAdmissionWebhook(ns string) admissionv1.MutatingWebhookConfiguration {
+	namespacedScope := admissionv1.NamespacedScope
+	failedType := admissionv1.Fail
+	equivalentType := admissionv1.Equivalent
+	noSideEffects := admissionv1.SideEffectClassNone
+	return admissionv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        instanceAdmissionWebHookName,
 			Annotations: map[string]string{},
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MutatingWebhookConfiguration",
-			APIVersion: "admissionregistration.k8s.io/v1beta1",
+			APIVersion: "admissionregistration.k8s.io/v1",
 		},
-		Webhooks: []admissionv1beta1.MutatingWebhook{
+		Webhooks: []admissionv1.MutatingWebhook{
 			{
 				Name: "instance-admission.kudo.dev",
-				Rules: []admissionv1beta1.RuleWithOperations{
+				Rules: []admissionv1.RuleWithOperations{
 					{
-						Operations: []admissionv1beta1.OperationType{"CREATE", "UPDATE"},
-						Rule: admissionv1beta1.Rule{
+						Operations: []admissionv1.OperationType{"CREATE", "UPDATE"},
+						Rule: admissionv1.Rule{
 							APIGroups:   []string{"kudo.dev"},
 							APIVersions: []string{"v1beta1"},
 							Resources:   []string{"instances"},
@@ -509,14 +509,17 @@ func InstanceAdmissionWebhook(ns string) admissionv1beta1.MutatingWebhookConfigu
 						},
 					},
 				},
-				FailurePolicy: &failedType, // this means that the request to update instance would fail, if webhook is not up
-				MatchPolicy:   &equivalentType,
-				SideEffects:   &noSideEffects,
-				ClientConfig: admissionv1beta1.WebhookClientConfig{
-					Service: &admissionv1beta1.ServiceReference{
+				AdmissionReviewVersions: []string{"v1beta1"},
+				FailurePolicy:           &failedType, // this means that the request to update instance would fail, if webhook is not up
+				MatchPolicy:             &equivalentType,
+				SideEffects:             &noSideEffects,
+				ClientConfig: admissionv1.WebhookClientConfig{
+					Service: &admissionv1.ServiceReference{
 						Name:      kudoinit.DefaultServiceName,
 						Namespace: ns,
 						Path:      convert.StringPtr("/admit-kudo-dev-v1beta1-instance"),
+						// Note: must match port from service defined in kudoinit/manager/manager.go
+						// Defaults to 443. Can be specified using Port:
 					},
 				},
 			},

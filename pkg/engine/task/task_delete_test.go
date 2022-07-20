@@ -46,7 +46,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			done:    true,
 			wantErr: false,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CustomCachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      renderer.Metadata{},
@@ -62,7 +62,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			wantErr: true,
 			fatal:   true,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CustomCachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
@@ -79,7 +79,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			wantErr: true,
 			fatal:   true,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CustomCachedDiscoveryClient(),
 				Enhancer:  &fatalErrorEnhancer{},
 				Meta:      meta,
@@ -95,7 +95,7 @@ func TestDeleteTask_Run(t *testing.T) {
 			done:    true,
 			wantErr: false,
 			ctx: Context{
-				Client:    fake.NewFakeClientWithScheme(scheme.Scheme),
+				Client:    fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 				Discovery: kudofake.CustomCachedDiscoveryClient(),
 				Enhancer:  &testEnhancer{},
 				Meta:      meta,
