@@ -116,7 +116,7 @@ snapshot:
 
 release:
   github:
-    owner: OneIdentity
+    owner: kudobuilder
     name: kudo
   draft: false
   prerelease: auto
