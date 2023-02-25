@@ -26,7 +26,7 @@ require (
 	github.com/yourbasic/graph v0.0.0-20170921192928-40eb135c0b26
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
 	golang.org/x/sync v0.0.0-20200930132711-30421366ff76
-	golang.org/x/sys v0.0.0-20200916030750-2334cc1a136f // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.19.2
