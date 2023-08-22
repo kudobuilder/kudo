@@ -96,7 +96,7 @@ spec:
             containers:
               - name: kubernetes-zookeeper
                 imagePullPolicy: Always
-                image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
+                image: "registry.k8s.io/kubernetes-zookeeper:1.0-3.4.10"
                 resources:
                   requests:
                     memory: "{{ .Params.memory }}"
@@ -184,7 +184,7 @@ spec:
             containers:
               - name: kubernetes-zookeeper
                 imagePullPolicy: Always
-                image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
+                image: "registry.k8s.io/kubernetes-zookeeper:1.0-3.4.10"
                 resources:
                   requests:
                     memory: "{{ .Params.memory }}"
@@ -261,7 +261,7 @@ spec:
             containers:
             - name: kubernetes-zookeeper
               imagePullPolicy: Always
-              image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
+              image: "registry.k8s.io/kubernetes-zookeeper:1.0-3.4.10"
               env:
               - name: CONN
                 value: zk-zk-0.zk-hs:2181,zk-zk-1.zk-hs:2181,zk-zk-2.zk-hs:2181
