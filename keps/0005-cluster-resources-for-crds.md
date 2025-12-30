@@ -83,7 +83,7 @@ should probably be created
 
 #### Story 4
 
-OperatorVersions require the existance of CRDs that are not controlled by Kudo (e.g. ETCD Operator) and require those to be installed when FV is enabled.
+OperatorVersions require the existence of CRDs that are not controlled by Kudo (e.g. ETCD Operator) and require those to be installed when FV is enabled.
 
 ### Implementation Details/Notes/Constraints [optional]
 
