@@ -39,8 +39,7 @@ func newPlanCmd(out io.Writer) *cobra.Command {
 
 // newPlanHistoryCmd creates a command that shows the plan history of an instance.
 func newPlanHistoryCmd(out io.Writer) *cobra.Command {
-	options := plan.DefaultHistoryOptions
-	options.Out = out
+	options := &plan.Options{Out: out}
 	cmd := &cobra.Command{
 		Use:     "history",
 		Short:   "Lists history for each plan of an instance.",

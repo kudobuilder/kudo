@@ -21,11 +21,6 @@ type Options struct {
 	Instance string
 }
 
-var (
-	// DefaultHistoryOptions provides the default options for plan history
-	DefaultHistoryOptions = &Options{}
-)
-
 // RunHistory runs the plan history command
 func RunHistory(cmd *cobra.Command, options *Options, settings *env.Settings) error {
 	instanceFlag, err := cmd.Flags().GetString("instance")
@@ -36,7 +31,7 @@ func RunHistory(cmd *cobra.Command, options *Options, settings *env.Settings) er
 	kc, err := env.GetClient(settings)
 	if err != nil {
 		clog.Printf("Unable to create KUDO client to talk to kubernetes API server: %v", err)
-		return err
+		return fmt.Errorf("client Error: %v", err)
 	}
 
 	err = planHistory(kc, options, settings.Namespace)
