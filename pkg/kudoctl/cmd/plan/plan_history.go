@@ -3,6 +3,7 @@ package plan
 import (
 	"errors"
 	"fmt"
+	"io"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -11,10 +12,12 @@ import (
 
 	"github.com/kudobuilder/kudo/pkg/kudoctl/clog"
 	"github.com/kudobuilder/kudo/pkg/kudoctl/env"
+	"github.com/kudobuilder/kudo/pkg/kudoctl/util/kudo"
 )
 
 // Options are the configurable options for plans
 type Options struct {
+	Out      io.Writer
 	Instance string
 }
 
@@ -30,21 +33,20 @@ func RunHistory(cmd *cobra.Command, options *Options, settings *env.Settings) er
 		return errors.New("please choose the instance with '--instance=<instanceName>'")
 	}
 
-	err = planHistory(options, settings)
+	kc, err := env.GetClient(settings)
+	if err != nil {
+		clog.Printf("Unable to create KUDO client to talk to kubernetes API server: %v", err)
+		return err
+	}
+
+	err = planHistory(kc, options, settings.Namespace)
 	if err != nil {
 		return fmt.Errorf("client Error: %v", err)
 	}
 	return nil
 }
 
-func planHistory(options *Options, settings *env.Settings) error {
-	namespace := settings.Namespace
-
-	kc, err := env.GetClient(settings)
-	if err != nil {
-		clog.Printf("Unable to create KUDO client to talk to kubernetes API server: %v", err)
-		return err
-	}
+func planHistory(kc *kudo.Client, options *Options, namespace string) error {
 	instance, err := kc.GetInstance(options.Instance, namespace)
 	if err != nil {
 		return err
@@ -76,7 +78,7 @@ func planHistory(options *Options, settings *env.Settings) error {
 		tree.AddBranch(historyDisplay)
 	}
 
-	fmt.Println(tree.String())
+	fmt.Fprintln(options.Out, tree.String())
 
 	return nil
 }

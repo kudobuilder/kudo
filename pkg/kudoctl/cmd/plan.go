@@ -30,16 +30,17 @@ func newPlanCmd(out io.Writer) *cobra.Command {
 		Long:  `The plan command has subcommands to view all available plans.`,
 	}
 
-	cmd.AddCommand(NewPlanHistoryCmd())
-	cmd.AddCommand(NewPlanStatusCmd(out))
-	cmd.AddCommand(NewPlanTriggerCmd())
+	cmd.AddCommand(newPlanHistoryCmd(out))
+	cmd.AddCommand(newPlanStatusCmd(out))
+	cmd.AddCommand(newPlanTriggerCmd())
 
 	return cmd
 }
 
-// NewPlanHistoryCmd creates a command that shows the plan history of an instance.
-func NewPlanHistoryCmd() *cobra.Command {
+// newPlanHistoryCmd creates a command that shows the plan history of an instance.
+func newPlanHistoryCmd(out io.Writer) *cobra.Command {
 	options := plan.DefaultHistoryOptions
+	options.Out = out
 	cmd := &cobra.Command{
 		Use:     "history",
 		Short:   "Lists history for each plan of an instance.",
@@ -54,8 +55,8 @@ func NewPlanHistoryCmd() *cobra.Command {
 	return cmd
 }
 
-// NewPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
-func NewPlanStatusCmd(out io.Writer) *cobra.Command {
+// newPlanStatusCmd creates a new command that shows the status of an instance by looking at its current plan
+func newPlanStatusCmd(out io.Writer) *cobra.Command {
 	options := &plan.StatusOptions{Out: out}
 	cmd := &cobra.Command{
 		Use:     "status",
@@ -78,8 +79,8 @@ func NewPlanStatusCmd(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-// NewPlanTriggerCmd creates a command that triggers a specific plan for an instance.
-func NewPlanTriggerCmd() *cobra.Command {
+// newPlanTriggerCmd creates a command that triggers a specific plan for an instance.
+func newPlanTriggerCmd() *cobra.Command {
 	options := &plan.TriggerOptions{}
 	cmd := &cobra.Command{
 		Use:     "trigger",
